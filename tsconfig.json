@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/domain"
+    },
+    {
+      "path": "./packages/api-interfaces"
+    },
+    {
+      "path": "./packages/extraction-engine"
+    }
+  ]
+}
