@@ -25,3 +25,5 @@ export * from './lib/features/offer-tracker.js';
 export * from './lib/features/moving-coordinator.js';
 export * from './lib/features/market-insights.js';
 export * from './lib/features/property-alerts.js';
+export * from './lib/features/virtual-tour-manager.js';
+export * from './lib/features/legal-compliance-checker.js';
