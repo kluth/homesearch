@@ -15,3 +15,5 @@ export * from './lib/features/saved-search-manager.js';
 export * from './lib/features/property-comparison.js';
 export * from './lib/features/mortgage-calculator.js';
 export * from './lib/features/chat-assistant.js';
+export * from './lib/features/community-manager.js';
+export * from './lib/features/local-experts.js';
