@@ -17,3 +17,8 @@ export * from './lib/features/mortgage-calculator.js';
 export * from './lib/features/chat-assistant.js';
 export * from './lib/features/community-manager.js';
 export * from './lib/features/local-experts.js';
+export * from './lib/features/viewing-scheduler.js';
+export * from './lib/features/neighborhood-analytics.js';
+export * from './lib/features/document-manager.js';
+export * from './lib/features/investment-analyzer.js';
+export * from './lib/features/offer-tracker.js';
