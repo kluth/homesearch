@@ -22,3 +22,6 @@ export * from './lib/features/neighborhood-analytics.js';
 export * from './lib/features/document-manager.js';
 export * from './lib/features/investment-analyzer.js';
 export * from './lib/features/offer-tracker.js';
+export * from './lib/features/moving-coordinator.js';
+export * from './lib/features/market-insights.js';
+export * from './lib/features/property-alerts.js';
