@@ -7,3 +7,4 @@ export * from './lib/services/circuit-breaker.js';
 export * from './lib/ai/source-discovery-agent.js';
 export * from './lib/ai/source-config.js';
 export * from './lib/ai/auto-discovery.js';
+export * from './lib/ai/response-generator.js';

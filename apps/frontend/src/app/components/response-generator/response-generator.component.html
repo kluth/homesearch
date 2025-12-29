@@ -1,0 +1,208 @@
+<div class="response-generator-overlay" (click)="closeDialog()">
+  <div class="response-generator-dialog" (click)="$event.stopPropagation()">
+    <div class="dialog-header">
+      <h2>Generate Response</h2>
+      <button class="close-button" (click)="closeDialog()">&times;</button>
+    </div>
+
+    <div class="dialog-content">
+      <!-- Property Info -->
+      <div class="property-info">
+        <h3>{{ property().title }}</h3>
+        <p class="property-price">{{ property().price | currency: 'EUR' }}</p>
+        <p class="property-location">{{ property().location.city }}, {{ property().location.country }}</p>
+      </div>
+
+      @if (generatedResponse() === null) {
+        <!-- Form to generate response -->
+        <div class="generator-form">
+          <div class="form-section">
+            <h4>Your Information</h4>
+
+            <div class="form-group">
+              <label for="name">Name *</label>
+              <input
+                type="text"
+                id="name"
+                [(ngModel)]="userPreferences().name"
+                placeholder="Your full name"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input
+                type="email"
+                id="email"
+                [(ngModel)]="userPreferences().email"
+                placeholder="your.email@example.com"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Phone (optional)</label>
+              <input
+                type="tel"
+                id="phone"
+                [(ngModel)]="userPreferences().phone"
+                placeholder="+49 123 456789"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="moveInDate">Move-in Date (optional)</label>
+              <input
+                type="text"
+                id="moveInDate"
+                [(ngModel)]="userPreferences().moveInDate"
+                placeholder="01.03.2024"
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="householdSize">Household Size</label>
+                <input
+                  type="number"
+                  id="householdSize"
+                  [(ngModel)]="userPreferences().householdSize"
+                  min="1"
+                  max="10"
+                  placeholder="2"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="userPreferences().pets"
+                  />
+                  Pets
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="employmentStatus">Employment Status (optional)</label>
+              <input
+                type="text"
+                id="employmentStatus"
+                [(ngModel)]="userPreferences().employmentStatus"
+                placeholder="Full-time employed"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="additionalInfo">Additional Information (optional)</label>
+              <textarea
+                id="additionalInfo"
+                [(ngModel)]="userPreferences().additionalInfo"
+                rows="3"
+                placeholder="Any other relevant information..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Response Options</h4>
+
+            <div class="form-group">
+              <label for="language">Language</label>
+              <select id="language" [(ngModel)]="selectedLanguage()">
+                @for (lang of languages; track lang.code) {
+                  <option [value]="lang.code">{{ lang.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="tone">Tone</label>
+              <select id="tone" [(ngModel)]="selectedTone()">
+                @for (tone of tones; track tone) {
+                  <option [value]="tone">{{ tone | titlecase }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="includeViewingRequest()"
+                />
+                Include viewing request
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="questions">Specific Questions (one per line)</label>
+              <textarea
+                id="questions"
+                [(ngModel)]="specificQuestions()"
+                rows="4"
+                placeholder="Is a fitted kitchen included?&#10;Is there a balcony or terrace?"
+              ></textarea>
+            </div>
+          </div>
+
+          @if (error()) {
+            <div class="error-message">
+              {{ error() }}
+            </div>
+          }
+
+          <div class="form-actions">
+            <button
+              class="btn btn-primary"
+              (click)="generateResponse()"
+              [disabled]="loading() || !isFormValid()"
+            >
+              @if (loading()) {
+                <span class="spinner"></span>
+                Generating...
+              } @else {
+                Generate Response
+              }
+            </button>
+            <button class="btn btn-secondary" (click)="closeDialog()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      } @else {
+        <!-- Generated response preview -->
+        <div class="response-preview">
+          <div class="response-meta">
+            <span class="badge">{{ generatedResponse()!.language | uppercase }}</span>
+            <span class="badge">{{ generatedResponse()!.tone | titlecase }}</span>
+          </div>
+
+          <div class="response-field">
+            <label>Subject:</label>
+            <p class="subject">{{ generatedResponse()!.subject }}</p>
+          </div>
+
+          <div class="response-field">
+            <label>Body:</label>
+            <div class="body">
+              <pre>{{ generatedResponse()!.body }}</pre>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" (click)="copyToClipboard()">
+              📋 Copy to Clipboard
+            </button>
+            <button class="btn btn-success" (click)="markAsSent()">
+              ✓ Mark as Sent
+            </button>
+            <button class="btn btn-secondary" (click)="editResponse()">
+              ← Back to Edit
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

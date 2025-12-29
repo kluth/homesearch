@@ -18,5 +18,13 @@
   ],
   "exclude": [
     "node_modules"
+  ],
+  "references": [
+    {
+      "path": "../../packages/extraction-engine"
+    },
+    {
+      "path": "../../packages/domain"
+    }
   ]
 }

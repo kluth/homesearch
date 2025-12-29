@@ -12,7 +12,10 @@ import {
   SourceDiscoveryAgent,
   ProviderRegistry,
   DataTransformerService,
+  ResponseGeneratorService,
   type DiscoveredSource,
+  type UserPreferences,
+  type ResponseGenerationOptions,
 } from '@house-finder/extraction-engine';
 import type { UnifiedHouseModel } from '@house-finder/domain';
 
@@ -320,6 +323,181 @@ export const getStatistics = onRequest({ cors: true }, async (request, response)
   } catch (error) {
     console.error('Error getting statistics:', error);
     response.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
+
+/**
+ * HTTPS Function: Generate Response
+ * Generates personalized response to a property listing in the appropriate language
+ */
+export const generateResponse = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const {
+      propertyId,
+      userPreferences,
+      language,
+      tone,
+      includeViewingRequest = true,
+      specificQuestions = [],
+    } = request.body as {
+      propertyId: string;
+      userPreferences: UserPreferences;
+      language?: string;
+      tone?: string;
+      includeViewingRequest?: boolean;
+      specificQuestions?: string[];
+    };
+
+    // Validate required fields
+    if (!propertyId) {
+      response.status(400).json({ error: 'Property ID is required' });
+      return;
+    }
+
+    if (!userPreferences) {
+      response.status(400).json({ error: 'User preferences are required' });
+      return;
+    }
+
+    // Fetch property from Firestore
+    const propertyDoc = await db.collection('properties').doc(propertyId).get();
+
+    if (!propertyDoc.exists) {
+      response.status(404).json({ error: 'Property not found' });
+      return;
+    }
+
+    const property = propertyDoc.data() as UnifiedHouseModel;
+
+    // Initialize response generator
+    const generator = new ResponseGeneratorService();
+
+    // Validate user preferences
+    if (!generator.validatePreferences(userPreferences)) {
+      response.status(400).json({
+        error: 'Invalid user preferences. Name or email is required.',
+      });
+      return;
+    }
+
+    // Generate response
+    const generatedResponse = generator.generateResponse({
+      property,
+      userPreferences,
+      language: language as any,
+      tone: tone as any,
+      includeViewingRequest,
+      specificQuestions,
+    });
+
+    // Save generated response to Firestore for tracking
+    const responseRef = db.collection('generated-responses').doc();
+    await responseRef.set({
+      id: responseRef.id,
+      propertyId,
+      propertyTitle: property.title,
+      propertyUrl: property.url,
+      userId: userPreferences.email ?? userPreferences.name,
+      subject: generatedResponse.subject,
+      body: generatedResponse.body,
+      language: generatedResponse.language,
+      tone: generatedResponse.tone,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      sent: false, // Track whether user actually sent it
+    });
+
+    console.log(`Generated response for property ${propertyId} in ${generatedResponse.language}`);
+
+    response.json({
+      message: 'Response generated successfully',
+      response: generatedResponse,
+      responseId: responseRef.id,
+    });
+  } catch (error) {
+    console.error('Error generating response:', error);
+    response.status(500).json({
+      error: 'Failed to generate response',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Mark Response as Sent
+ * Updates a generated response to mark it as sent
+ */
+export const markResponseSent = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { responseId, sentAt } = request.body as {
+      responseId: string;
+      sentAt?: string;
+    };
+
+    if (!responseId) {
+      response.status(400).json({ error: 'Response ID is required' });
+      return;
+    }
+
+    const responseRef = db.collection('generated-responses').doc(responseId);
+    const responseDoc = await responseRef.get();
+
+    if (!responseDoc.exists) {
+      response.status(404).json({ error: 'Response not found' });
+      return;
+    }
+
+    await responseRef.update({
+      sent: true,
+      sentAt: sentAt != null ? new Date(sentAt) : admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`Marked response ${responseId} as sent`);
+
+    response.json({
+      message: 'Response marked as sent',
+      responseId,
+    });
+  } catch (error) {
+    console.error('Error marking response as sent:', error);
+    response.status(500).json({
+      error: 'Failed to mark response as sent',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get Generated Responses
+ * Retrieves generated responses for tracking
+ */
+export const getGeneratedResponses = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { userId, sent, limit = 50 } = request.query as {
+      userId?: string;
+      sent?: string;
+      limit?: string;
+    };
+
+    let query: admin.firestore.Query = db
+      .collection('generated-responses')
+      .orderBy('createdAt', 'desc')
+      .limit(Number(limit));
+
+    if (userId) {
+      query = query.where('userId', '==', userId);
+    }
+
+    if (sent != null) {
+      query = query.where('sent', '==', sent === 'true');
+    }
+
+    const snapshot = await query.get();
+    const responses = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    response.json(responses);
+  } catch (error) {
+    console.error('Error getting generated responses:', error);
+    response.status(500).json({ error: 'Failed to get generated responses' });
   }
 });
 
