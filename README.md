@@ -127,10 +127,12 @@ All code follows the Red-Green-Refactor cycle:
 **Current Test Coverage:**
 - ✅ Domain model validation (11 tests)
 - ✅ Strategy pattern interfaces (10 tests)
-- 🚧 API client integration (17 tests passing)
-- 📋 Scraper implementation (planned)
-- 📋 Data transformer service (planned)
-- 📋 Orchestrator service (planned)
+- ✅ Zillow API client (17 tests)
+- ✅ Immoscout24 scraper (20 tests)
+- ✅ Data transformer service (12 tests)
+- ✅ Provider registry (21 tests)
+- ✅ Circuit breaker resilience (14 tests)
+- ✅ **Total: 96 passing unit tests**
 
 ## 🔄 Recursive Background Polling (Planned)
 
@@ -311,7 +313,7 @@ firebase functions:log
 
 ## 📊 Current Status
 
-### ✅ Completed (Phase 1 & 2)
+### ✅ Completed (Phases 1, 2 & 3)
 - [x] Nx workspace initialization with pnpm
 - [x] Strict TypeScript and ESLint configuration
 - [x] @house-finder/domain library with comprehensive Zod schemas
@@ -319,33 +321,49 @@ firebase functions:log
 - [x] @house-finder/extraction-engine with Strategy Pattern
 - [x] UnifiedHouseModel with 40+ validated fields
 - [x] Base provider interfaces (DataProvider, BaseScraper, BaseApiClient)
-- [x] ZillowApiClient implementation with error handling
-- [x] **Immoscout24Scraper with Playwright** (20 tests passing)
+- [x] ZillowApiClient implementation with error handling (17 tests)
+- [x] **Immoscout24Scraper with Playwright** (20 tests)
   - HTML parsing with regex
   - German price format parsing
   - Property type detection
   - User-agent rotation (anti-detection)
   - Headless browser automation
-- [x] **DataTransformerService** (12 tests passing)
+- [x] **DataTransformerService** (12 tests)
   - Deduplication by ID and address similarity
   - Multi-source data merging
   - Price normalization (EUR/USD/GBP/CHF)
   - Confidence scoring (0-1 scale)
   - Data enrichment (price per sqm, metadata)
+- [x] **ProviderRegistry** (21 tests)
+  - Dynamic provider registration
+  - Type-based filtering (API vs Scraper)
+  - Parallel execution of all providers
+  - Health checking across all sources
+  - Runtime statistics and metadata
+- [x] **CircuitBreaker** (14 tests)
+  - Three-state pattern (CLOSED, OPEN, HALF_OPEN)
+  - Automatic failure detection and recovery
+  - Prevents cascading failures
+  - Configurable thresholds and timeouts
+  - Real-time statistics tracking
+- [x] **Complete Workflow Examples**
+  - Multi-source data collection
+  - Transformation pipeline
+  - Resilience patterns
+  - Production-ready architecture
 - [x] Firebase configuration (firebase.json, Firestore rules & indexes)
-- [x] **Total: 61 passing unit tests**
+- [x] **Total: 96 passing unit tests**
 
 ### 🚧 In Progress
 - API client HTTP mocking refinement (8 tests pending - non-critical)
 
 ### 📋 Next Steps
 1. Create NestJS backend application with modular architecture
-2. Build OrchestratorService for Cloud Tasks
-3. Implement ProviderRegistry for managing all data sources
-4. Set up Firebase Functions Gen 2 deployment
-5. Create Angular frontend with Signals
-6. Implement real-time Firestore dashboard
-7. Add Circuit Breaker pattern for resilience
+2. Build OrchestratorService for Cloud Tasks integration
+3. Set up Firebase Functions Gen 2 deployment
+4. Create Angular frontend with Signals
+5. Implement real-time Firestore dashboard
+6. Deploy to production
 
 ## 📄 License
 
