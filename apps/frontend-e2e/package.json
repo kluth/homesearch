@@ -1,0 +1,8 @@
+{
+  "name": "@house-finder/frontend-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "frontend-e2e"
+  }
+}

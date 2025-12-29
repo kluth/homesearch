@@ -1,0 +1,230 @@
+<div class="dashboard">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <h1>🏠 House Finder</h1>
+    <p class="subtitle">AI-Powered Real Estate Search Engine</p>
+  </header>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-container">
+      <input
+        type="text"
+        [(ngModel)]="searchLocation"
+        placeholder="Enter location (e.g., Germany, de, Berlin, USA)..."
+        class="search-input"
+        (keyup.enter)="onSearch()"
+      />
+      <button
+        class="search-button"
+        (click)="onSearch()"
+        [disabled]="propertyService.loading() || !searchLocation()"
+      >
+        @if (propertyService.loading()) {
+          <span class="spinner"></span>
+          Searching...
+        } @else {
+          🔍 Search
+        }
+      </button>
+    </div>
+
+    @if (propertyService.error()) {
+      <div class="error-message">
+        ⚠️ {{ propertyService.error() }}
+      </div>
+    }
+  </section>
+
+  <!-- Statistics Dashboard -->
+  @if (propertyService.statisticsSignal(); as stats) {
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.totalProperties }}</div>
+        <div class="stat-label">Properties Found</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.totalJobs }}</div>
+        <div class="stat-label">Total Jobs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.running }}</div>
+        <div class="stat-label">Running</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.completed }}</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </section>
+  }
+
+  <!-- Discovered Sources -->
+  @if (propertyService.sources().length > 0) {
+    <section class="sources-section">
+      <h2>Discovered Sources</h2>
+      <div class="sources-grid">
+        @for (source of propertyService.sources(); track source.name) {
+          <div class="source-card">
+            <div class="source-header">
+              <h3>{{ source.localName || source.name }}</h3>
+              <span [class]="getQualityBadgeClass(source.quality?.grade)">
+                {{ source.quality?.grade }}
+              </span>
+            </div>
+            <div class="source-details">
+              <div class="source-info">
+                <span class="source-type">{{ source.type }}</span>
+                @if (source.language) {
+                  <span class="source-lang">{{ source.language }}</span>
+                }
+              </div>
+              <div class="source-score">
+                Score: {{ source.quality?.score }}/100
+              </div>
+            </div>
+            @if (source.quality?.reasonsForGrade) {
+              <ul class="source-reasons">
+                @for (reason of source.quality.reasonsForGrade; track reason) {
+                  <li>{{ reason }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Active Jobs -->
+  @if (hasJobs()) {
+    <section class="jobs-section">
+      <h2>Extraction Jobs</h2>
+      <div class="jobs-list">
+        @for (job of propertyService.jobs(); track job.id) {
+          <div class="job-card" [class]="getJobStatusClass(job.status)">
+            <div class="job-info">
+              <strong>{{ job.sourceId }}</strong>
+              <span class="job-status">{{ job.status }}</span>
+            </div>
+            <div class="job-meta">
+              <span>Priority: {{ job.priority }}</span>
+              @if (job.results) {
+                <span>{{ job.results.length }} properties</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Properties Grid/List -->
+  @if (hasProperties()) {
+    <section class="properties-section">
+      <div class="properties-header">
+        <h2>Properties ({{ propertyService.totalPropertiesCount() }})</h2>
+        <button class="view-toggle" (click)="toggleViewMode()">
+          {{ viewMode() === 'grid' ? '📋 List View' : '📊 Grid View' }}
+        </button>
+      </div>
+
+      <div [class]="'properties-' + viewMode()">
+        @for (property of propertyService.recentProperties(); track property.id) {
+          <div class="property-card" (click)="selectProperty(property)">
+            @if (property.images && property.images[0]) {
+              <img [src]="property.images[0]" [alt]="property.title" class="property-image" />
+            } @else {
+              <div class="property-image-placeholder">🏠</div>
+            }
+
+            <div class="property-content">
+              <h3 class="property-title">{{ property.title }}</h3>
+
+              <div class="property-price">
+                {{ formatPrice(property.price, property.currency) }}
+              </div>
+
+              <div class="property-details">
+                @if (property.bedrooms) {
+                  <span>🛏️ {{ property.bedrooms }} beds</span>
+                }
+                @if (property.bathrooms) {
+                  <span>🚿 {{ property.bathrooms }} baths</span>
+                }
+                @if (property.livingArea) {
+                  <span>📐 {{ property.livingArea }} m²</span>
+                }
+              </div>
+
+              @if (property.city) {
+                <div class="property-location">📍 {{ property.city }}</div>
+              }
+
+              <div class="property-meta">
+                <span class="property-source">{{ property.metadata.source }}</span>
+                @if (property.metadata.confidence) {
+                  <span class="property-confidence">
+                    ⭐ {{ (property.metadata.confidence * 100).toFixed(0) }}%
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  } @else if (!propertyService.loading() && propertyService.currentLocation()) {
+    <section class="empty-state">
+      <p>No properties found yet. Extraction in progress...</p>
+    </section>
+  }
+
+  <!-- Property Detail Modal -->
+  @if (selectedProperty()) {
+    <div class="modal-overlay" (click)="closePropertyDetail()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <button class="modal-close" (click)="closePropertyDetail()">×</button>
+
+        <h2>{{ selectedProperty().title }}</h2>
+
+        <div class="modal-price">
+          {{ formatPrice(selectedProperty().price, selectedProperty().currency) }}
+        </div>
+
+        <div class="modal-details">
+          @if (selectedProperty().bedrooms) {
+            <div>
+              <strong>Bedrooms:</strong> {{ selectedProperty().bedrooms }}
+            </div>
+          }
+          @if (selectedProperty().bathrooms) {
+            <div>
+              <strong>Bathrooms:</strong> {{ selectedProperty().bathrooms }}
+            </div>
+          }
+          @if (selectedProperty().livingArea) {
+            <div>
+              <strong>Living Area:</strong> {{ selectedProperty().livingArea }} m²
+            </div>
+          }
+          @if (selectedProperty().propertyType) {
+            <div>
+              <strong>Type:</strong> {{ selectedProperty().propertyType }}
+            </div>
+          }
+          @if (selectedProperty().address) {
+            <div>
+              <strong>Address:</strong> {{ selectedProperty().address }}
+            </div>
+          }
+        </div>
+
+        @if (selectedProperty().sourceUrl) {
+          <a [href]="selectedProperty().sourceUrl" target="_blank" class="view-original">
+            View Original Listing →
+          </a>
+        }
+      </div>
+    </div>
+  }
+</div>

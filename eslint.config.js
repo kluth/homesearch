@@ -10,7 +10,13 @@ const compat = new FlatCompat({
 
 module.exports = [
   {
-    ignores: ['**/dist', '**/node_modules', '**/.nx', '**/coverage'],
+      "ignores": [
+        "**/dist",
+        "**/node_modules",
+        "**/.nx",
+        "**/coverage",
+        "**/test-output"
+      ]
   },
   ...compat.extends(
     'eslint:recommended',

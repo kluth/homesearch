@@ -17,6 +17,9 @@
     },
     {
       "path": "./apps/backend"
+    },
+    {
+      "path": "./apps/frontend-e2e"
     }
   ]
 }
