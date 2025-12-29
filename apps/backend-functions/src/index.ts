@@ -13,9 +13,17 @@ import {
   ProviderRegistry,
   DataTransformerService,
   ResponseGeneratorService,
+  RecommendationEngine,
+  NLPSearchParser,
+  PriceIntelligence,
+  InteractionType,
   type DiscoveredSource,
-  type UserPreferences,
+  type UserPreferences as ResponseUserPreferences,
   type ResponseGenerationOptions,
+  type UserPreferences as RecommendationUserPreferences,
+  type PropertyInteraction,
+  type RecommendedProperty,
+  type PriceAnalysis,
 } from '@house-finder/extraction-engine';
 import type { UnifiedHouseModel } from '@house-finder/domain';
 
@@ -27,6 +35,11 @@ const db = admin.firestore();
 
 // Initialize Cloud Tasks
 const tasksClient = new CloudTasksClient();
+
+// Initialize AI Services
+const recommendationEngine = new RecommendationEngine();
+const nlpParser = new NLPSearchParser();
+const priceIntelligence = new PriceIntelligence();
 
 // Set global options for all functions
 setGlobalOptions({
@@ -500,6 +513,363 @@ export const getGeneratedResponses = onRequest({ cors: true }, async (request, r
     response.status(500).json({ error: 'Failed to get generated responses' });
   }
 });
+
+/**
+ * HTTPS Function: Smart Search with NLP
+ * Parses natural language queries into structured search
+ */
+export const smartSearch = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { query } = request.body as { query: string };
+
+    if (!query) {
+      response.status(400).json({ error: 'Query is required' });
+      return;
+    }
+
+    // Parse natural language query
+    const parsed = nlpParser.parse(query);
+
+    // Get all properties from Firestore
+    const propertiesSnapshot = await db.collection('properties').limit(500).get();
+    const allProperties = propertiesSnapshot.docs.map((doc) => doc.data() as UnifiedHouseModel);
+
+    // Filter based on parsed preferences
+    const filtered = filterPropertiesByPreferences(allProperties, parsed.preferences);
+
+    console.log(`Smart search: "${query}" -> ${filtered.length} results`);
+
+    response.json({
+      message: 'Search completed successfully',
+      query: parsed.originalQuery,
+      interpretation: parsed.interpretation,
+      confidence: parsed.confidence,
+      preferences: parsed.preferences,
+      results: filtered.slice(0, 50), // Limit to 50 results
+      totalResults: filtered.length,
+    });
+  } catch (error) {
+    console.error('Error in smart search:', error);
+    response.status(500).json({
+      error: 'Failed to process search',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get Personalized Recommendations
+ * Returns AI-powered property recommendations
+ */
+export const getRecommendations = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { userId, limit = 20 } = request.query as { userId?: string; limit?: string };
+
+    if (!userId) {
+      response.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    // Get user preferences from Firestore
+    const userDoc = await db.collection('user-preferences').doc(userId).get();
+    const userPreferences = userDoc.exists ? userDoc.data() as RecommendationUserPreferences : undefined;
+
+    if (userPreferences != null) {
+      recommendationEngine.setUserPreferences(userPreferences);
+    }
+
+    // Get user interactions
+    const interactionsSnapshot = await db
+      .collection('property-interactions')
+      .where('userId', '==', userId)
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    const interactions = interactionsSnapshot.docs.map((doc) => doc.data() as PropertyInteraction);
+    interactions.forEach((interaction) => recommendationEngine.addInteraction(interaction));
+
+    // Get available properties
+    const propertiesSnapshot = await db.collection('properties').limit(500).get();
+    const allProperties = propertiesSnapshot.docs.map((doc) => doc.data() as UnifiedHouseModel);
+
+    // Get recommendations
+    const recommendations = recommendationEngine.getRecommendations(
+      userId,
+      allProperties,
+      Number(limit)
+    );
+
+    console.log(`Generated ${recommendations.length} recommendations for user ${userId}`);
+
+    response.json({
+      message: 'Recommendations generated successfully',
+      recommendations,
+      userPreferences,
+      interactionCount: interactions.length,
+    });
+  } catch (error) {
+    console.error('Error generating recommendations:', error);
+    response.status(500).json({
+      error: 'Failed to generate recommendations',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Track Property Interaction
+ * Records user interactions for learning
+ */
+export const trackInteraction = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const interaction = request.body as PropertyInteraction;
+
+    if (!interaction.userId || !interaction.propertyId || !interaction.type) {
+      response.status(400).json({ error: 'userId, propertyId, and type are required' });
+      return;
+    }
+
+    // Add timestamp if not provided
+    if (!interaction.timestamp) {
+      interaction.timestamp = new Date();
+    }
+
+    // Save to Firestore
+    const interactionRef = db.collection('property-interactions').doc();
+    await interactionRef.set({
+      id: interactionRef.id,
+      ...interaction,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Add to recommendation engine
+    recommendationEngine.addInteraction(interaction);
+
+    console.log(`Tracked ${interaction.type} interaction for user ${interaction.userId}`);
+
+    response.json({
+      message: 'Interaction tracked successfully',
+      interactionId: interactionRef.id,
+    });
+  } catch (error) {
+    console.error('Error tracking interaction:', error);
+    response.status(500).json({
+      error: 'Failed to track interaction',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get Price Analysis
+ * Analyzes property price vs market
+ */
+export const getPriceAnalysis = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { propertyId } = request.query as { propertyId: string };
+
+    if (!propertyId) {
+      response.status(400).json({ error: 'Property ID is required' });
+      return;
+    }
+
+    // Get property
+    const propertyDoc = await db.collection('properties').doc(propertyId).get();
+
+    if (!propertyDoc.exists) {
+      response.status(404).json({ error: 'Property not found' });
+      return;
+    }
+
+    const property = propertyDoc.data() as UnifiedHouseModel;
+
+    // Get market data (properties in same city)
+    const marketSnapshot = await db
+      .collection('properties')
+      .where('location.city', '==', property.location.city)
+      .limit(200)
+      .get();
+
+    const marketData = marketSnapshot.docs.map((doc) => doc.data() as UnifiedHouseModel);
+
+    // Analyze price
+    const analysis = priceIntelligence.analyzePrice(property, marketData);
+
+    // Get negotiation suggestion
+    const negotiation = priceIntelligence.getNegotiationSuggestion(analysis);
+
+    console.log(`Price analysis for ${propertyId}: ${analysis.verdict} (score: ${analysis.fairnessScore})`);
+
+    response.json({
+      message: 'Price analysis completed',
+      analysis,
+      negotiation,
+    });
+  } catch (error) {
+    console.error('Error analyzing price:', error);
+    response.status(500).json({
+      error: 'Failed to analyze price',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Set User Preferences
+ * Saves user search preferences
+ */
+export const setUserPreferences = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const preferences = request.body as RecommendationUserPreferences;
+
+    if (!preferences.userId) {
+      response.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    // Save to Firestore
+    await db.collection('user-preferences').doc(preferences.userId).set(preferences);
+
+    // Update recommendation engine
+    recommendationEngine.setUserPreferences(preferences);
+
+    console.log(`Updated preferences for user ${preferences.userId}`);
+
+    response.json({
+      message: 'Preferences saved successfully',
+      preferences,
+    });
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    response.status(500).json({
+      error: 'Failed to save preferences',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get User Preferences
+ * Retrieves user search preferences
+ */
+export const getUserPreferences = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { userId } = request.query as { userId: string };
+
+    if (!userId) {
+      response.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    const userDoc = await db.collection('user-preferences').doc(userId).get();
+
+    if (!userDoc.exists) {
+      response.status(404).json({ error: 'User preferences not found' });
+      return;
+    }
+
+    response.json(userDoc.data());
+  } catch (error) {
+    console.error('Error getting preferences:', error);
+    response.status(500).json({ error: 'Failed to get preferences' });
+  }
+});
+
+/**
+ * HTTPS Function: Get Market Trend
+ * Analyzes market trends for a location
+ */
+export const getMarketTrend = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { location, propertyType = 'apartment' } = request.query as {
+      location: string;
+      propertyType?: string;
+    };
+
+    if (!location) {
+      response.status(400).json({ error: 'Location is required' });
+      return;
+    }
+
+    // Get historical data
+    const snapshot = await db
+      .collection('properties')
+      .where('location.city', '==', location)
+      .limit(200)
+      .get();
+
+    const historicalData = snapshot.docs.map((doc) => doc.data() as UnifiedHouseModel);
+
+    // Analyze trend
+    const trend = priceIntelligence.analyzeMarketTrend(
+      location,
+      propertyType,
+      historicalData
+    );
+
+    console.log(`Market trend for ${location}: ${trend.direction} (${trend.priceChange}%)`);
+
+    response.json({
+      message: 'Market trend analyzed',
+      trend,
+    });
+  } catch (error) {
+    console.error('Error analyzing market trend:', error);
+    response.status(500).json({
+      error: 'Failed to analyze market trend',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * Helper: Filter properties by preferences
+ */
+function filterPropertiesByPreferences(
+  properties: UnifiedHouseModel[],
+  preferences: Partial<RecommendationUserPreferences>
+): UnifiedHouseModel[] {
+  return properties.filter((property) => {
+    // Budget filter
+    if (preferences.budgetMin != null && property.price < preferences.budgetMin) {
+      return false;
+    }
+    if (preferences.budgetMax != null && property.price > preferences.budgetMax) {
+      return false;
+    }
+
+    // City filter
+    if (
+      preferences.preferredCities != null &&
+      preferences.preferredCities.length > 0 &&
+      property.location.city != null
+    ) {
+      const match = preferences.preferredCities.some(
+        (city) => city.toLowerCase() === property.location.city?.toLowerCase()
+      );
+      if (!match) return false;
+    }
+
+    // Rooms filter
+    if (preferences.minRooms != null && property.rooms != null) {
+      if (property.rooms < preferences.minRooms) return false;
+    }
+    if (preferences.maxRooms != null && property.rooms != null) {
+      if (property.rooms > preferences.maxRooms) return false;
+    }
+
+    // Area filter
+    if (preferences.minArea != null && property.area != null) {
+      if (property.area < preferences.minArea) return false;
+    }
+    if (preferences.maxArea != null && property.area != null) {
+      if (property.area > preferences.maxArea) return false;
+    }
+
+    return true;
+  });
+}
 
 /**
  * Helper: Create Cloud Task for extraction

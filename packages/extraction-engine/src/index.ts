@@ -8,3 +8,6 @@ export * from './lib/ai/source-discovery-agent.js';
 export * from './lib/ai/source-config.js';
 export * from './lib/ai/auto-discovery.js';
 export * from './lib/ai/response-generator.js';
+export * from './lib/ai/recommendation-engine.js';
+export * from './lib/ai/nlp-search-parser.js';
+export * from './lib/ai/price-intelligence.js';
