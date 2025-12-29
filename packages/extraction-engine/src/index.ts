@@ -11,3 +11,7 @@ export * from './lib/ai/response-generator.js';
 export * from './lib/ai/recommendation-engine.js';
 export * from './lib/ai/nlp-search-parser.js';
 export * from './lib/ai/price-intelligence.js';
+export * from './lib/features/saved-search-manager.js';
+export * from './lib/features/property-comparison.js';
+export * from './lib/features/mortgage-calculator.js';
+export * from './lib/features/chat-assistant.js';
