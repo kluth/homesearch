@@ -11,6 +11,12 @@
     },
     {
       "path": "./packages/extraction-engine"
+    },
+    {
+      "path": "./apps/backend-e2e"
+    },
+    {
+      "path": "./apps/backend"
     }
   ]
 }
