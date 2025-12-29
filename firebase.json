@@ -2,13 +2,17 @@
   "functions": [
     {
       "source": "apps/backend-functions",
-      "codebase": "house-finder-functions",
+      "codebase": "backend-functions",
       "runtime": "nodejs20",
       "ignore": [
         "node_modules",
         ".git",
         "firebase-debug.log",
-        "firebase-debug.*.log"
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
   ],
@@ -26,6 +30,7 @@
     "ui": {
       "enabled": true,
       "port": 4000
-    }
+    },
+    "singleProjectMode": true
   }
 }

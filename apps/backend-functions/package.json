@@ -1,0 +1,29 @@
+{
+  "name": "backend-functions",
+  "version": "1.0.0",
+  "description": "Firebase Functions for House Finder - Gen 2 Cloud Functions",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.10.0",
+    "@google-cloud/tasks": "^5.8.0",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.1.1",
+    "@house-finder/domain": "workspace:*",
+    "@house-finder/extraction-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "~5.5.0"
+  },
+  "private": true
+}

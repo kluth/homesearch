@@ -2,7 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Houses collection - read public, write authenticated
+    // Properties collection - read public, write by functions only
+    match /properties/{propertyId} {
+      allow read: if true; // Public read for all property listings
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Extraction jobs - read public, write by functions only
+    match /extraction-jobs/{jobId} {
+      allow read: if true; // Public read for job status
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Legacy houses collection - read public, write authenticated
     match /houses/{houseId} {
       allow read: if true; // Public read for all property listings
       allow write: if request.auth != null; // Only authenticated users can write
