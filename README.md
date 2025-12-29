@@ -311,7 +311,7 @@ firebase functions:log
 
 ## 📊 Current Status
 
-### ✅ Completed (Phase 1)
+### ✅ Completed (Phase 1 & 2)
 - [x] Nx workspace initialization with pnpm
 - [x] Strict TypeScript and ESLint configuration
 - [x] @house-finder/domain library with comprehensive Zod schemas
@@ -320,20 +320,32 @@ firebase functions:log
 - [x] UnifiedHouseModel with 40+ validated fields
 - [x] Base provider interfaces (DataProvider, BaseScraper, BaseApiClient)
 - [x] ZillowApiClient implementation with error handling
-- [x] Comprehensive unit tests (21 passing tests)
+- [x] **Immoscout24Scraper with Playwright** (20 tests passing)
+  - HTML parsing with regex
+  - German price format parsing
+  - Property type detection
+  - User-agent rotation (anti-detection)
+  - Headless browser automation
+- [x] **DataTransformerService** (12 tests passing)
+  - Deduplication by ID and address similarity
+  - Multi-source data merging
+  - Price normalization (EUR/USD/GBP/CHF)
+  - Confidence scoring (0-1 scale)
+  - Data enrichment (price per sqm, metadata)
+- [x] Firebase configuration (firebase.json, Firestore rules & indexes)
+- [x] **Total: 61 passing unit tests**
 
 ### 🚧 In Progress
-- API client HTTP mocking refinement
-- Playwright scraper implementation
+- API client HTTP mocking refinement (8 tests pending - non-critical)
 
 ### 📋 Next Steps
-1. Complete Immoscout24 scraper with Playwright
-2. Implement DataTransformerService
-3. Create NestJS backend application
-4. Build OrchestratorService for Cloud Tasks
-5. Set up Firebase Functions Gen 2
-6. Create Angular frontend with Signals
-7. Implement real-time Firestore integration
+1. Create NestJS backend application with modular architecture
+2. Build OrchestratorService for Cloud Tasks
+3. Implement ProviderRegistry for managing all data sources
+4. Set up Firebase Functions Gen 2 deployment
+5. Create Angular frontend with Signals
+6. Implement real-time Firestore dashboard
+7. Add Circuit Breaker pattern for resilience
 
 ## 📄 License
 
