@@ -5,3 +5,5 @@ export * from './lib/services/data-transformer.js';
 export * from './lib/services/provider-registry.js';
 export * from './lib/services/circuit-breaker.js';
 export * from './lib/ai/source-discovery-agent.js';
+export * from './lib/ai/source-config.js';
+export * from './lib/ai/auto-discovery.js';

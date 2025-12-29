@@ -1,6 +1,8 @@
 import type { UnifiedHouseModel } from '@house-finder/domain';
 import type { DataProvider } from '../providers/base-provider';
 import type { ProviderRegistry } from '../services/provider-registry';
+import { SourceConfigManager, type FetchSchedule } from './source-config';
+import { AutoDiscovery } from './auto-discovery';
 
 /**
  * Type of data source
@@ -101,16 +103,42 @@ export interface DiscoveryOptions {
 /**
  * AI-Powered Source Discovery Agent
  * Automatically discovers, analyzes, and integrates new real estate data sources
+ * with self-learning capabilities
  */
 export class SourceDiscoveryAgent {
   private knownSources: Map<string, DiscoveredSource> = new Map();
+  private configManager: SourceConfigManager;
+  private autoDiscovery: AutoDiscovery;
 
-  constructor() {
+  constructor(configPath?: string) {
+    this.configManager = new SourceConfigManager(configPath);
+    this.autoDiscovery = new AutoDiscovery();
     this.initializeKnownSources();
   }
 
   /**
+   * Initialize from persistent configuration
+   */
+  public async initialize(): Promise<void> {
+    const config = await this.configManager.load();
+
+    // Load all saved sources
+    for (const source of config.sources) {
+      this.knownSources.set(source.name, source);
+    }
+  }
+
+  /**
+   * Get fetch schedules for all sources (excellent sources fetched more often)
+   */
+  public getFetchSchedules(): FetchSchedule[] {
+    const sources = Array.from(this.knownSources.values());
+    return this.configManager.getFetchSchedules(sources);
+  }
+
+  /**
    * Discover real estate sources for a specific location
+   * Now with intelligent abbreviation parsing!
    */
   public async discoverSources(options: DiscoveryOptions): Promise<DiscoveredSource[]> {
     const { location, limit = 10 } = options;
@@ -119,12 +147,20 @@ export class SourceDiscoveryAgent {
       return [];
     }
 
-    const sources = this.getSourcesForLocation(location);
+    // Parse location and expand abbreviations
+    const config = await this.configManager.load();
+    const parsed = this.autoDiscovery.parseLocation(location, config.abbreviations);
+
+    // Try both normalized and expanded versions
+    let sources = this.getSourcesForLocation(parsed.expanded);
+    if (sources.length === 0 && parsed.normalized !== parsed.expanded) {
+      sources = this.getSourcesForLocation(parsed.normalized);
+    }
 
     // Grade each source for quality
     const gradedSources = sources.map((source) => this.gradeSource(source));
 
-    // Sort by quality score (highest first)
+    // Sort by quality score (highest first) - excellent sources come first!
     gradedSources.sort((a, b) => {
       const scoreA = a.quality?.score ?? 0;
       const scoreB = b.quality?.score ?? 0;
@@ -132,6 +168,14 @@ export class SourceDiscoveryAgent {
     });
 
     const limitedSources = gradedSources.slice(0, limit);
+
+    // Learn this location mapping for future use
+    if (limitedSources.length > 0) {
+      await this.configManager.addLocationMapping(
+        parsed.normalized,
+        limitedSources.map((s) => s.name)
+      );
+    }
 
     return limitedSources;
   }
@@ -311,8 +355,12 @@ export class SourceDiscoveryAgent {
 
   /**
    * Analyze a website for scraping potential and API availability
+   * Now with automatic language and field discovery!
    */
-  public async analyzeWebsite(url: string): Promise<WebsiteAnalysis> {
+  public async analyzeWebsite(
+    url: string,
+    fetchHtml?: () => Promise<string>
+  ): Promise<WebsiteAnalysis & { language?: string; discoveredFields?: string[] }> {
     // Validate URL
     try {
       new URL(url);
@@ -345,10 +393,43 @@ export class SourceDiscoveryAgent {
     // Analyze HTML structure for scraping patterns
     const patterns = await this.analyzeHtmlPatterns(url);
 
-    const analysis: WebsiteAnalysis = {
+    let language: string | undefined;
+    let discoveredFields: string[] | undefined;
+
+    // If HTML fetch function provided, do auto-discovery
+    if (fetchHtml) {
+      try {
+        const html = await fetchHtml();
+
+        // Auto-detect language
+        const langDetection = this.autoDiscovery.detectLanguage(html, url);
+        language = langDetection.primary;
+
+        // Auto-discover fields
+        const fieldDiscovery = this.autoDiscovery.discoverFields(html);
+        discoveredFields = fieldDiscovery.fields;
+
+        // Enhance patterns with discovered selectors
+        Object.assign(patterns, {
+          ...patterns,
+          ...Object.fromEntries(
+            Object.entries(fieldDiscovery.selectors).map(([field, selector]) => [
+              `${field}Selector`,
+              selector,
+            ])
+          ),
+        });
+      } catch (error) {
+        // Continue with default analysis
+      }
+    }
+
+    const analysis: WebsiteAnalysis & { language?: string; discoveredFields?: string[] } = {
       isScrappable: patterns.hasListings,
       hasApi,
       patterns,
+      language,
+      discoveredFields,
     };
 
     // Provide selector suggestions if scrappable
@@ -363,6 +444,17 @@ export class SourceDiscoveryAgent {
     }
 
     return analysis;
+  }
+
+  /**
+   * Learn from a new source and save to configuration
+   */
+  public async learnSource(source: DiscoveredSource): Promise<void> {
+    // Add to in-memory cache
+    this.knownSources.set(source.name, source);
+
+    // Save to persistent storage
+    await this.configManager.addSource(source);
   }
 
   /**
