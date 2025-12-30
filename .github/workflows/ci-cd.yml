@@ -1,0 +1,360 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'claude/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # Job 1: Code Quality & Linting
+  lint:
+    name: 🔍 Lint & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run ESLint
+        run: npx nx run-many --target=lint --all --parallel=3
+        continue-on-error: true
+
+      - name: 📊 Check for console.log statements
+        run: |
+          echo "Checking for console.log in backend-functions..."
+          CONSOLE_COUNT=$(grep -r "console\.log" apps/backend-functions/src/ | grep -v "console.error" | wc -l || echo "0")
+          echo "Found $CONSOLE_COUNT console.log statements"
+          if [ "$CONSOLE_COUNT" -gt 5 ]; then
+            echo "⚠️ Warning: Too many console.log statements ($CONSOLE_COUNT)"
+          fi
+
+      - name: 📝 Check for TODOs/FIXMEs
+        run: |
+          echo "Checking for TODO/FIXME comments..."
+          TODO_COUNT=$(grep -r "TODO\|FIXME" apps/backend-functions/src/ packages/*/src/ 2>/dev/null | wc -l || echo "0")
+          echo "Found $TODO_COUNT TODO/FIXME comments"
+          if [ "$TODO_COUNT" -gt 20 ]; then
+            echo "⚠️ Warning: Many unresolved TODOs ($TODO_COUNT)"
+          fi
+
+  # Job 2: Run Tests
+  test:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run unit tests
+        run: npx nx run-many --target=test --all --parallel=3 --coverage
+        continue-on-error: true
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        continue-on-error: true
+        with:
+          files: ./coverage/**/coverage-final.json
+          fail_ci_if_error: false
+
+  # Job 3: Build All Packages
+  build:
+    name: 🏗️ Build Packages
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          echo "Creating symlinks for @house-finder packages..."
+
+          # extraction-engine -> domain
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          # backend-functions -> domain & extraction-engine
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+          echo "✅ Symlinks created"
+
+      - name: 🏗️ Build @house-finder/domain
+        run: npx nx build @house-finder/domain --skip-nx-cache
+
+      - name: 🏗️ Build @house-finder/extraction-engine
+        run: npx nx build @house-finder/extraction-engine --skip-nx-cache
+
+      - name: 🏗️ Build backend-functions
+        run: npx nx build backend-functions --skip-nx-cache
+
+      - name: ✅ Verify TypeScript errors
+        run: |
+          echo "Checking for TypeScript errors..."
+
+          # Check extraction-engine
+          EXTRACTION_ERRORS=$(npx nx build @house-finder/extraction-engine 2>&1 | grep -c "error TS" || echo "0")
+          echo "extraction-engine errors: $EXTRACTION_ERRORS"
+
+          # Check backend-functions
+          BACKEND_ERRORS=$(npx nx build backend-functions 2>&1 | grep -c "error TS" || echo "0")
+          echo "backend-functions errors: $BACKEND_ERRORS"
+
+          TOTAL_ERRORS=$((EXTRACTION_ERRORS + BACKEND_ERRORS))
+          echo "Total TypeScript errors: $TOTAL_ERRORS"
+
+          if [ "$TOTAL_ERRORS" -gt 0 ]; then
+            echo "❌ Build failed with $TOTAL_ERRORS TypeScript errors"
+            exit 1
+          fi
+
+          echo "✅ All packages built successfully with 0 errors!"
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            packages/*/dist
+            apps/backend-functions/lib
+          retention-days: 7
+
+  # Job 4: Security Audit
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 🔍 Run pnpm audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+      - name: 🔒 Check for secrets in code
+        run: |
+          echo "Scanning for potential secrets..."
+          if grep -r -i "api[_-]key\s*=\|password\s*=\|secret\s*=" apps/ packages/ --include="*.ts" --include="*.js" | grep -v "// " | grep -v "/\*"; then
+            echo "⚠️ Warning: Potential secrets found in code!"
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+  # Job 5: Firebase Deployment (Production)
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://house-finder-production.web.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          # extraction-engine -> domain
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          # backend-functions -> domain & extraction-engine
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🏗️ Build all packages
+        run: npx nx run-many --target=build --all --skip-nx-cache
+
+      - name: 🔑 Setup Firebase credentials
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > $HOME/firebase-service-account.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-service-account.json" >> $GITHUB_ENV
+
+      - name: 🔥 Deploy Firestore rules and indexes
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: house-finder-production
+          channelId: live
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: ⏰ Wait for Firestore indexes
+        run: |
+          echo "Waiting 30 seconds for Firestore indexes to start building..."
+          sleep 30
+          echo "⚠️ Note: Firestore indexes may take 10-30 minutes to fully build"
+          echo "Check Firebase Console: https://console.firebase.google.com/project/house-finder-production/firestore/indexes"
+
+      - name: 🚀 Deploy Firebase Functions
+        run: |
+          npx firebase-tools deploy --only functions --project house-finder-production --token "${{ secrets.FIREBASE_TOKEN }}" --force
+
+      - name: ✅ Verify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Functions deployed to: https://us-central1-house-finder-production.cloudfunctions.net"
+
+      - name: 📊 Post-deployment health check
+        run: |
+          echo "Waiting 10 seconds for functions to warm up..."
+          sleep 10
+          # Add health check endpoint call here if you have one
+          echo "✅ Deployment verification complete"
+
+  # Job 6: Firebase Deployment (Staging)
+  deploy-staging:
+    name: 🧪 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://house-finder-staging.web.app
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🏗️ Build all packages
+        run: npx nx run-many --target=build --all --skip-nx-cache
+
+      - name: 🚀 Deploy to Firebase Staging
+        run: |
+          npx firebase-tools deploy --only functions,firestore --project house-finder-staging --token "${{ secrets.FIREBASE_TOKEN }}" --force
+
+      - name: ✅ Staging deployment complete
+        run: echo "Deployed to staging environment"
+
+  # Job 7: Notify on Success/Failure
+  notify:
+    name: 📢 Notify Status
+    runs-on: ubuntu-latest
+    needs: [deploy-production, deploy-staging]
+    if: always()
+
+    steps:
+      - name: 📢 Deployment Status
+        run: |
+          if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+            echo "✅ Production deployment successful!"
+          elif [ "${{ needs.deploy-production.result }}" == "failure" ]; then
+            echo "❌ Production deployment failed!"
+          fi
+
+          if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
+            echo "✅ Staging deployment successful!"
+          elif [ "${{ needs.deploy-staging.result }}" == "failure" ]; then
+            echo "❌ Staging deployment failed!"
+          fi

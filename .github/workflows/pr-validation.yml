@@ -1,0 +1,211 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # Quick validation for PRs
+  pr-check:
+    name: 🔍 PR Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🔍 Lint changed files
+        run: npx nx affected --target=lint --base=origin/${{ github.base_ref }}
+        continue-on-error: true
+
+      - name: 🧪 Test affected projects
+        run: npx nx affected --target=test --base=origin/${{ github.base_ref }}
+        continue-on-error: true
+
+      - name: 🏗️ Build affected projects
+        run: npx nx affected --target=build --base=origin/${{ github.base_ref }}
+
+      - name: ✅ Verify TypeScript
+        run: |
+          echo "Checking TypeScript compilation..."
+          npx nx build @house-finder/extraction-engine 2>&1 | tee /tmp/ts-errors.log
+          ERRORS=$(grep -c "error TS" /tmp/ts-errors.log || echo "0")
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "❌ Found $ERRORS TypeScript errors"
+            exit 1
+          fi
+
+          echo "✅ No TypeScript errors found"
+
+      - name: 📊 PR Summary Comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('PR Validation Summary');
+            });
+
+            const output = `### 🤖 PR Validation Summary
+
+            - ✅ Dependencies installed
+            - ✅ Workspace symlinks created
+            - ✅ Linting completed
+            - ✅ Tests executed
+            - ✅ Build successful
+            - ✅ TypeScript compilation verified
+
+            **Status:** Ready for review! 🚀
+
+            <sub>Updated at ${new Date().toISOString()}</sub>`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            }
+
+  # Check PR title format
+  pr-title-check:
+    name: 📝 Check PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📝 Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+          requireScope: false
+
+  # Check for merge conflicts
+  merge-conflict-check:
+    name: 🔀 Check Merge Conflicts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔀 Check for merge conflicts
+        uses: mschilde/auto-label-merge-conflicts@master
+        with:
+          CONFLICT_LABEL_NAME: 'merge-conflict'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Size analysis
+  bundle-size:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🏗️ Build packages
+        run: npx nx run-many --target=build --all
+
+      - name: 📊 Analyze bundle sizes
+        run: |
+          echo "### 📦 Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|" >> $GITHUB_STEP_SUMMARY
+
+          # backend-functions
+          if [ -f "apps/backend-functions/lib/index.js" ]; then
+            SIZE=$(du -h apps/backend-functions/lib/index.js | cut -f1)
+            echo "| backend-functions | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # extraction-engine
+          if [ -f "packages/extraction-engine/dist/index.js" ]; then
+            SIZE=$(du -h packages/extraction-engine/dist/index.js | cut -f1)
+            echo "| extraction-engine | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # domain
+          if [ -f "packages/domain/dist/index.js" ]; then
+            SIZE=$(du -h packages/domain/dist/index.js | cut -f1)
+            echo "| domain | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          fi

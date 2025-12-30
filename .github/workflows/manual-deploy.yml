@@ -1,0 +1,165 @@
+name: Manual Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      deploy_firestore:
+        description: 'Deploy Firestore rules and indexes'
+        required: true
+        type: boolean
+        default: false
+      deploy_functions:
+        description: 'Deploy Cloud Functions'
+        required: true
+        type: boolean
+        default: true
+      skip_tests:
+        description: 'Skip tests (not recommended for production)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # Pre-deployment validation
+  validate:
+    name: 🔍 Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🧪 Run tests
+        run: npx nx run-many --target=test --all --parallel=3
+
+      - name: 🏗️ Build all packages
+        run: npx nx run-many --target=build --all
+
+  # Manual deployment
+  deploy:
+    name: 🚀 Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: ${{ always() && (needs.validate.result == 'success' || inputs.skip_tests) }}
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔗 Create workspace symlinks
+        run: |
+          mkdir -p packages/extraction-engine/node_modules/@house-finder
+          ln -sf ../../../domain packages/extraction-engine/node_modules/@house-finder/domain
+
+          mkdir -p apps/backend-functions/node_modules/@house-finder
+          ln -sf ../../../../packages/domain apps/backend-functions/node_modules/@house-finder/domain
+          ln -sf ../../../../packages/extraction-engine apps/backend-functions/node_modules/@house-finder/extraction-engine
+
+      - name: 🏗️ Build all packages
+        run: npx nx run-many --target=build --all --skip-nx-cache
+
+      - name: 🔑 Determine Firebase project
+        id: firebase-project
+        run: |
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            echo "project=house-finder-production" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.environment }}" == "staging" ]; then
+            echo "project=house-finder-staging" >> $GITHUB_OUTPUT
+          else
+            echo "project=house-finder-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔥 Deploy Firestore
+        if: ${{ inputs.deploy_firestore }}
+        run: |
+          echo "Deploying Firestore rules and indexes to ${{ steps.firebase-project.outputs.project }}..."
+          npx firebase-tools deploy --only firestore --project ${{ steps.firebase-project.outputs.project }} --token "${{ secrets.FIREBASE_TOKEN }}" --force
+
+      - name: ⏰ Wait for Firestore indexes
+        if: ${{ inputs.deploy_firestore }}
+        run: |
+          echo "⚠️ Firestore indexes are building..."
+          echo "This may take 10-30 minutes for large datasets"
+          echo "Check progress: https://console.firebase.google.com/project/${{ steps.firebase-project.outputs.project }}/firestore/indexes"
+          sleep 30
+
+      - name: 🚀 Deploy Cloud Functions
+        if: ${{ inputs.deploy_functions }}
+        run: |
+          echo "Deploying Cloud Functions to ${{ steps.firebase-project.outputs.project }}..."
+          npx firebase-tools deploy --only functions --project ${{ steps.firebase-project.outputs.project }} --token "${{ secrets.FIREBASE_TOKEN }}" --force
+
+      - name: ✅ Deployment Summary
+        run: |
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Project:** ${{ steps.firebase-project.outputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed:**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.deploy_firestore }}" == "true" ]; then
+            echo "- ✅ Firestore rules and indexes" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ inputs.deploy_functions }}" == "true" ]; then
+            echo "- ✅ Cloud Functions" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📢 Notify deployment
+        run: |
+          echo "✅ Deployment to ${{ inputs.environment }} completed successfully!"
+          echo "Functions URL: https://us-central1-${{ steps.firebase-project.outputs.project }}.cloudfunctions.net"
