@@ -102,7 +102,67 @@ npx nx build backend-functions 2>&1 | grep "error TS" | wc -l
   - Cloud Tasks management
   - Cloud Functions invocation
 
-### ✅ 6. Firestore Security Rules
+### ✅ 6. Authentication Setup
+
+**IMPORTANT:** Authentication must be properly configured before deployment.
+
+- [ ] **Enable Firebase Authentication**
+  ```bash
+  # In Firebase Console:
+  # 1. Go to Authentication → Sign-in method
+  # 2. Enable "Email/Password" provider
+  # 3. (Optional) Enable OAuth providers: Google, Facebook, Apple
+  ```
+
+- [ ] **Configure Email Templates**
+  ```bash
+  # In Firebase Console:
+  # Authentication → Templates
+  # Customize:
+  # - Email verification
+  # - Password reset
+  # - Email address change
+  ```
+
+- [ ] **Verify Auth Triggers Are Deployed**
+  ```bash
+  # Ensure these triggers are in backend-functions/src/index.ts:
+  # - beforeUserCreate (sets initial custom claims)
+  # - beforeUserSignIn (checks user status)
+  # - onUserCreated (creates user profile)
+  ```
+
+- [ ] **Test Authentication Flow**
+  ```bash
+  # Create test user
+  firebase auth:import test-users.json --hash-algo=STANDARD_SCRYPT
+
+  # Or manually test in emulator:
+  firebase emulators:start --only auth,firestore,functions
+  # Then test sign-up and sign-in
+  ```
+
+- [ ] **Verify Security Rules Include Auth Checks**
+  ```bash
+  # firestore.rules should include:
+  # - isAuthenticated() checks
+  # - Role-based access controls
+  # - Workspace isolation rules
+
+  # Test rules locally:
+  firebase emulators:start --only firestore
+  ```
+
+- [ ] **Review User Roles**
+  - USER (default) - Basic access
+  - PREMIUM - Advanced features
+  - AGENT - Can create listings
+  - ADMIN - Manage users
+  - SUPER_ADMIN - Full system access
+
+**📚 See [AUTHENTICATION.md](./AUTHENTICATION.md) for complete auth setup guide**
+
+### ✅ 7. Firestore Security Rules
 
 Review and validate security rules:
 
@@ -119,7 +179,7 @@ firebase emulators:start --only firestore
 - [ ] User data: Read/write only by authenticated owners
 - [ ] No unintended public write access
 
-### ✅ 7. Firestore Indexes
+### ✅ 8. Firestore Indexes
 
 - [ ] **Deploy Indexes First**: Always deploy indexes before functions
   ```bash
@@ -131,7 +191,7 @@ firebase emulators:start --only firestore
   - Wait until all indexes show "Enabled" status
   - ⚠️ Large datasets may take 10-30 minutes
 
-### ✅ 8. Package Dependencies
+### ✅ 9. Package Dependencies
 
 Verify workspace dependencies are correctly linked:
 
@@ -144,7 +204,7 @@ ls -la apps/backend-functions/node_modules/@house-finder/extraction-engine
 # All should show valid symlinks (-> pointing to correct paths)
 ```
 
-### ✅ 9. Code Quality
+### ✅ 10. Code Quality
 
 - [ ] **Linting**: Run linter to catch potential issues
   ```bash
@@ -159,7 +219,7 @@ ls -la apps/backend-functions/node_modules/@house-finder/extraction-engine
   grep -r "console.log" apps/backend-functions/src/
   ```
 
-### ✅ 10. Testing
+### ✅ 11. Testing
 
 - [ ] **Unit Tests**: Run all tests
   ```bash

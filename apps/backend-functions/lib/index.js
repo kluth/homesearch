@@ -37,7 +37,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMarketTrend = exports.getUserPreferences = exports.setUserPreferences = exports.getPriceAnalysis = exports.trackInteraction = exports.getRecommendations = exports.smartSearch = exports.getGeneratedResponses = exports.markResponseSent = exports.generateResponse = exports.getStatistics = exports.getProperties = exports.getJobs = exports.processExtraction = exports.discoverSources = exports.startExtraction = void 0;
+exports.beforeUserSignIn = exports.beforeUserCreate = exports.getMarketTrend = exports.getUserPreferences = exports.setUserPreferences = exports.getPriceAnalysis = exports.trackInteraction = exports.getRecommendations = exports.smartSearch = exports.getGeneratedResponses = exports.markResponseSent = exports.generateResponse = exports.getStatistics = exports.getProperties = exports.getJobs = exports.processExtraction = exports.discoverSources = exports.startExtraction = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const tasks_1 = require("firebase-functions/v2/tasks");
 const options_1 = require("firebase-functions/v2/options");
@@ -772,4 +772,13 @@ async function simulateExtraction(source, location) {
     // In production, this would return actual property data
     return [];
 }
+/**
+ * Authentication Triggers
+ *
+ * NOTE: Full user management API available in auth-functions.ts requires Express.
+ * Install: cd apps/backend-functions && pnpm install express @types/express
+ */
+var simple_auth_js_1 = require("./auth/simple-auth.js");
+Object.defineProperty(exports, "beforeUserCreate", { enumerable: true, get: function () { return simple_auth_js_1.beforeUserCreate; } });
+Object.defineProperty(exports, "beforeUserSignIn", { enumerable: true, get: function () { return simple_auth_js_1.beforeUserSignIn; } });
 //# sourceMappingURL=index.js.map

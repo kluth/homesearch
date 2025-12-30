@@ -1,0 +1,259 @@
+import { UserRole, ROLE_PERMISSIONS } from '@house-finder/domain';
+import { logger } from 'firebase-functions/v2';
+import { AuthenticatedRequest, Response } from './auth-middleware.js';
+
+/**
+ * Role-Based Authorization Guard
+ * Requires user to have at least one of the specified roles
+ */
+export function requireRole(...allowedRoles: UserRole[]) {
+    if (!req.auth) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    const userRole = req.auth.role;
+
+    if (!allowedRoles.includes(userRole)) {
+      logger.warn('Insufficient permissions', {
+        uid: req.auth.uid,
+        userRole,
+        requiredRoles: allowedRoles,
+      });
+
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Insufficient permissions',
+        required: allowedRoles,
+        current: userRole,
+      });
+      return;
+    }
+
+    ;
+  };
+}
+
+/**
+ * Permission-Based Authorization Guard
+ * Requires user to have specific permission for a resource
+ */
+export function requirePermission(resource: string, action: 'create' | 'read' | 'update' | 'delete' | 'list' | 'manage') {
+    if (!req.auth) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    const userRole = req.auth.role;
+    const rolePermissions = ROLE_PERMISSIONS[userRole];
+
+    // Check if user has wildcard permission
+    const hasWildcard = rolePermissions.some(
+      p => p.resource === '*' && p.actions.includes(action)
+    );
+
+    if (hasWildcard) {
+      ;
+      return;
+    }
+
+    // Check if user has specific permission
+    const hasPermission = rolePermissions.some(
+      p => p.resource === resource && p.actions.includes(action)
+    );
+
+    if (!hasPermission) {
+      logger.warn('Permission denied', {
+        uid: req.auth.uid,
+        userRole,
+        resource,
+        action,
+      });
+
+      res.status(403).json({
+        error: 'Forbidden',
+        message: `Permission denied for ${action} on ${resource}`,
+      });
+      return;
+    }
+
+    ;
+  };
+}
+
+/**
+ * Email Verification Guard
+ * Requires user to have verified email
+ */
+export function requireEmailVerified(
+  req: AuthenticatedRequest,
+  res: Response,
+): void {
+  if (!req.auth) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+    return;
+  }
+
+  if (!req.auth.emailVerified) {
+    res.status(403).json({
+      error: 'EmailNotVerified',
+      message: 'Email verification required',
+    });
+    return;
+  }
+
+  ;
+}
+
+/**
+ * Workspace Ownership Guard
+ * Ensures user can only access their own workspace data
+ */
+export function requireWorkspaceOwnership(
+  req: AuthenticatedRequest,
+  res: Response,
+): void {
+  if (!req.auth) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required',
+    });
+    return;
+  }
+
+  // Extract workspace ID from request (can be in params, query, or body)
+  const requestedWorkspaceId = req.params.workspaceId || req.query.workspaceId || req.body?.workspaceId;
+
+  if (!requestedWorkspaceId) {
+    // If no workspace ID in request, inject user's workspace ID
+    req.params.workspaceId = req.auth.workspaceId;
+    ;
+    return;
+  }
+
+  // Check if user is accessing their own workspace
+  if (requestedWorkspaceId !== req.auth.workspaceId) {
+    // Allow admins to access any workspace
+    if (req.auth.role === UserRole.ADMIN || req.auth.role === UserRole.SUPER_ADMIN) {
+      ;
+      return;
+    }
+
+    logger.warn('Workspace access denied', {
+      uid: req.auth.uid,
+      userWorkspaceId: req.auth.workspaceId,
+      requestedWorkspaceId,
+    });
+
+    res.status(403).json({
+      error: 'Forbidden',
+      message: 'Access denied to this workspace',
+    });
+    return;
+  }
+
+  ;
+}
+
+/**
+ * Resource Ownership Guard
+ * Ensures user can only access resources they own
+ */
+export function requireResourceOwnership(resourceField = 'userId') {
+    if (!req.auth) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    // Extract resource owner ID from request
+    const resourceOwnerId = req.params[resourceField] || req.query[resourceField] || req.body?.[resourceField];
+
+    if (!resourceOwnerId) {
+      // If no owner ID specified, inject current user's ID
+      if (req.body) {
+        req.body[resourceField] = req.auth.uid;
+      } else {
+        req.body = { [resourceField]: req.auth.uid };
+      }
+      ;
+      return;
+    }
+
+    // Check if user owns the resource
+    if (resourceOwnerId !== req.auth.uid) {
+      // Allow admins to access any resource
+      if (req.auth.role === UserRole.ADMIN || req.auth.role === UserRole.SUPER_ADMIN) {
+        ;
+        return;
+      }
+
+      logger.warn('Resource access denied', {
+        uid: req.auth.uid,
+        resourceOwnerId,
+      });
+
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Access denied to this resource',
+      });
+      return;
+    }
+
+    ;
+  };
+}
+
+/**
+ * Subscription Tier Guard
+ * Requires user to have at least the specified subscription tier
+ */
+export function requireSubscription(...allowedPlans: ('free' | 'basic' | 'premium' | 'enterprise')[]) {
+    if (!req.auth) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    const userPlan = req.auth.customClaims?.subscriptionPlan || 'free';
+
+    if (!allowedPlans.includes(userPlan)) {
+      res.status(403).json({
+        error: 'SubscriptionRequired',
+        message: 'Upgrade your subscription to access this feature',
+        required: allowedPlans,
+        current: userPlan,
+      });
+      return;
+    }
+
+    ;
+  };
+}
+
+/**
+ * Rate Limiting Helper
+ * Can be used with external rate limiting libraries
+ */
+export function getRateLimitKeyFromAuth(req: AuthenticatedRequest): string {
+  if (req.auth) {
+    // Authenticated users: use UID
+    return `user:${req.auth.uid}`;
+  } else {
+    // Anonymous users: use IP address
+    return `ip:${req.ip}`;
+  }
+}

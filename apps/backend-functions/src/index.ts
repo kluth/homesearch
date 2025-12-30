@@ -935,3 +935,13 @@ async function simulateExtraction(
   // In production, this would return actual property data
   return [];
 }
+/**
+ * Authentication Triggers
+ *
+ * NOTE: Full user management API available in auth-functions.ts requires Express.
+ * Install: cd apps/backend-functions && pnpm install express @types/express
+ */
+export {
+  beforeUserCreate,
+  beforeUserSignIn,
+} from './auth/simple-auth.js';
