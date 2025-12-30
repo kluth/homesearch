@@ -559,6 +559,585 @@ service cloud.firestore {
     }
 
     // =============================================
+    // AI & ML FEATURES
+    // =============================================
+
+    /**
+     * Property Recommendations
+     * Users can read their own recommendations
+     */
+    match /property_recommendations/{recommendationId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Users can update viewed/dismissed status
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewedAt', 'dismissedAt', 'savedAt']);
+
+      allow write: if false; // Only functions create recommendations
+    }
+
+    /**
+     * User Preferences (for ML model)
+     * Users can read and update their own preferences
+     */
+    match /user_preferences/{userId} {
+      allow read, write: if isAuthenticated()
+        && userId == request.auth.uid;
+    }
+
+    /**
+     * Chat Conversations (AI Chatbot)
+     * Users can read and update their own conversations
+     */
+    match /chat_conversations/{conversationId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Property Valuations (AVM)
+     * Users can read valuations, only functions can write
+     */
+    match /property_valuations/{valuationId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only functions create valuations
+    }
+
+    /**
+     * Smart Alerts
+     * Users can read their own alerts
+     */
+    match /smart_alerts/{alertId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Users can mark as read
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['readAt', 'clickedAt']);
+
+      allow create, delete: if false; // Only functions manage alerts
+    }
+
+    // =============================================
+    // COMMUNICATION FEATURES
+    // =============================================
+
+    /**
+     * Messages
+     * Users can read messages in their conversations
+     */
+    match /messages/{messageId} {
+      allow read: if isAuthenticated()
+        && (resource.data.senderId == request.auth.uid
+            || get(/databases/$(database)/documents/conversations/$(resource.data.conversationId))
+               .data.participants[request.auth.uid] != null);
+
+      // Users can create messages in their conversations
+      allow create: if isAuthenticated()
+        && request.resource.data.senderId == request.auth.uid;
+
+      // Users can update read/delivered status
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'deliveredAt', 'readAt', 'reactions']);
+    }
+
+    /**
+     * Conversations
+     * Users can read their own conversations
+     */
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated()
+        && resource.data.participants[request.auth.uid] != null;
+
+      // Users can create conversations
+      allow create: if isAuthenticated()
+        && request.resource.data.participants[request.auth.uid] != null;
+
+      // Participants can update conversation settings
+      allow update: if isAuthenticated()
+        && resource.data.participants[request.auth.uid] != null;
+    }
+
+    /**
+     * Video Calls
+     * Users can read their own calls
+     */
+    match /video_calls/{callId} {
+      allow read: if isAuthenticated()
+        && (resource.data.hostId == request.auth.uid
+            || resource.data.participants[request.auth.uid] != null);
+
+      allow create: if isAuthenticated()
+        && request.resource.data.hostId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.hostId == request.auth.uid
+            || resource.data.participants[request.auth.uid] != null);
+    }
+
+    /**
+     * Appointments
+     * Users can read their own appointments
+     */
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated()
+        && (resource.data.requesterId == request.auth.uid
+            || resource.data.agentId == request.auth.uid
+            || resource.data.attendees[request.auth.uid] != null);
+
+      // Users can create appointment requests
+      allow create: if isAuthenticated()
+        && request.resource.data.requesterId == request.auth.uid;
+
+      // Participants can update status
+      allow update: if isAuthenticated()
+        && (resource.data.requesterId == request.auth.uid
+            || resource.data.agentId == request.auth.uid);
+    }
+
+    /**
+     * Shared Documents
+     * Users can read documents shared with them
+     */
+    match /shared_documents/{documentId} {
+      allow read: if isAuthenticated()
+        && (resource.data.uploadedBy == request.auth.uid
+            || resource.data.sharedWith[request.auth.uid] != null
+            || (resource.data.workspaceId != null
+                && get(/databases/$(database)/documents/workspace_members/$(request.auth.uid + '_' + resource.data.workspaceId)) != null));
+
+      allow create: if isAuthenticated()
+        && request.resource.data.uploadedBy == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.uploadedBy == request.auth.uid
+            || (resource.data.sharedWith[request.auth.uid] != null
+                && resource.data.sharedWith[request.auth.uid].accessLevel == 'edit'));
+    }
+
+    /**
+     * Notification Preferences
+     * Users can manage their own preferences
+     */
+    match /notification_preferences/{userId} {
+      allow read, write: if isAuthenticated()
+        && userId == request.auth.uid;
+    }
+
+    // =============================================
+    // ANALYTICS FEATURES
+    // =============================================
+
+    /**
+     * Market Analytics
+     * Public read for all authenticated users
+     */
+    match /market_analytics/{analyticsId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only functions update market data
+    }
+
+    /**
+     * Neighborhood Insights
+     * Public read for all authenticated users
+     */
+    match /neighborhood_insights/{insightId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only functions update insights
+    }
+
+    /**
+     * Price History
+     * Public read for all authenticated users
+     */
+    match /price_history/{historyId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only functions track price history
+    }
+
+    /**
+     * Investment Analysis
+     * Users can read their own analyses
+     */
+    match /investment_analysis/{analysisId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Commute Analysis
+     * Users can read their own analyses
+     */
+    match /commute_analysis/{analysisId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Property Comparisons
+     * Users can manage their own comparisons
+     */
+    match /property_comparisons/{comparisonId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // =============================================
+    // FINANCIAL TOOLS
+    // =============================================
+
+    /**
+     * Mortgage Calculations
+     * Users can read their own calculations
+     */
+    match /mortgage_calculations/{calculationId} {
+      allow read, write: if isAuthenticated()
+        && (!resource.data.keys().hasAny(['userId'])
+            || resource.data.userId == request.auth.uid);
+    }
+
+    /**
+     * Amortization Schedules
+     * Users can read their own schedules
+     */
+    match /amortization_schedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    /**
+     * Pre-Approvals
+     * Users can manage their own pre-approvals
+     */
+    match /pre_approvals/{approvalId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Assistance Programs
+     * Public read for all authenticated users
+     */
+    match /assistance_programs/{programId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin(); // Only admins manage programs
+    }
+
+    /**
+     * Closing Cost Estimates
+     * Users can manage their own estimates
+     */
+    match /closing_cost_estimates/{estimateId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Rent vs Buy Analysis
+     * Users can manage their own analyses
+     */
+    match /rent_vs_buy_analysis/{analysisId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Affordability Calculations
+     * Users can read their own calculations
+     */
+    match /affordability_calculations/{calculationId} {
+      allow read, write: if isAuthenticated()
+        && (!resource.data.keys().hasAny(['userId'])
+            || resource.data.userId == request.auth.uid);
+    }
+
+    // =============================================
+    // SOCIAL & COMMUNITY FEATURES
+    // =============================================
+
+    /**
+     * Reviews
+     * All users can read reviews
+     * Users can create and manage their own reviews
+     */
+    match /reviews/{reviewId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['helpfulCount', 'notHelpfulCount']));
+
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    /**
+     * Forum Posts
+     * All users can read posts
+     * Users can create and manage their own posts
+     */
+    match /forum_posts/{postId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.authorId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['views', 'likes']));
+
+      allow delete: if isAuthenticated()
+        && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
+    /**
+     * Forum Comments
+     * All users can read comments
+     * Users can create and manage their own comments
+     */
+    match /forum_comments/{commentId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.authorId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['likes']));
+
+      allow delete: if isAuthenticated()
+        && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
+    /**
+     * Resident Insights
+     * All users can read insights
+     * Users can create and manage their own insights
+     */
+    match /resident_insights/{insightId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['helpfulCount']));
+
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    /**
+     * Shared Property Lists
+     * Users can read lists shared with them
+     */
+    match /shared_property_lists/{listId} {
+      allow read: if isAuthenticated()
+        && (resource.data.ownerId == request.auth.uid
+            || resource.data.collaborators[request.auth.uid] != null
+            || resource.data.visibility == 'public');
+
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.ownerId == request.auth.uid
+            || resource.data.collaborators[request.auth.uid] != null);
+
+      allow delete: if isAuthenticated()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    /**
+     * Agent Profiles
+     * All users can read agent profiles
+     * Agents can manage their own profiles
+     */
+    match /agent_profiles/{profileId} {
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated()
+        && (profileId == request.auth.uid
+            || hasAnyRole(['agent', 'admin', 'super_admin']));
+    }
+
+    /**
+     * Activity Feed
+     * Users can read their own activity and public activities
+     */
+    match /activity_feed/{activityId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid
+            || resource.data.visibility == 'public');
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * User Connections
+     * Users can manage their own connections
+     */
+    match /user_connections/{connectionId} {
+      allow read: if isAuthenticated()
+        && (resource.data.requesterId == request.auth.uid
+            || resource.data.addresseeId == request.auth.uid);
+
+      allow create: if isAuthenticated()
+        && request.resource.data.requesterId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.requesterId == request.auth.uid
+            || resource.data.addresseeId == request.auth.uid);
+    }
+
+    /**
+     * Referrals
+     * Users can read their own referrals
+     */
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated()
+        && (resource.data.referrerId == request.auth.uid
+            || resource.data.refereeId == request.auth.uid);
+
+      allow create: if isAuthenticated()
+        && request.resource.data.referrerId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (resource.data.referrerId == request.auth.uid
+            || resource.data.refereeId == request.auth.uid
+            || isAdmin());
+    }
+
+    // =============================================
+    // MOBILE FEATURES
+    // =============================================
+
+    /**
+     * AR Sessions
+     * Users can manage their own AR sessions
+     */
+    match /ar_sessions/{sessionId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Geolocation Searches
+     * Users can read their own searches
+     */
+    match /geolocation_searches/{searchId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Offline Data Sync
+     * Users can manage their own sync data
+     */
+    match /offline_data_sync/{syncId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Push Notifications
+     * Users can read their own notifications
+     */
+    match /push_notifications/{notificationId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Users can mark as clicked
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['devices']);
+
+      allow create, delete: if false; // Only functions send notifications
+    }
+
+    /**
+     * Device Registrations
+     * Users can manage their own devices
+     */
+    match /device_registrations/{deviceId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Quick Actions
+     * Users can manage their own quick actions
+     */
+    match /quick_actions/{actionId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Voice Commands
+     * Users can manage their own voice commands
+     */
+    match /voice_commands/{commandId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Photo Analysis
+     * Users can manage their own photo analyses
+     */
+    match /photo_analysis/{analysisId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Biometric Auth
+     * Users can manage their own biometric settings
+     */
+    match /biometric_auth/{authId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Widget Data
+     * Users can read their own widget data
+     */
+    match /widget_data/{widgetId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Location Reminders
+     * Users can manage their own location reminders
+     */
+    match /location_reminders/{reminderId} {
+      allow read, write: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // =============================================
     // DEFAULT DENY
     // =============================================
 
