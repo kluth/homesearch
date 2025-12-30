@@ -2,7 +2,15 @@
   "name": "@house-finder/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "pre-deploy": "./scripts/pre-deploy-check.sh",
+    "build:all": "npx nx run-many --target=build --all",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:all": "firebase deploy",
+    "emulators": "firebase emulators:start",
+    "logs": "firebase functions:log --limit 100"
+  },
   "private": true,
   "devDependencies": {
     "@angular-devkit/build-angular": "^21.0.4",

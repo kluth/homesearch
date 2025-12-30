@@ -10,20 +10,15 @@ import * as admin from 'firebase-admin';
 import { CloudTasksClient } from '@google-cloud/tasks';
 import {
   SourceDiscoveryAgent,
-  ProviderRegistry,
   DataTransformerService,
   ResponseGeneratorService,
   RecommendationEngine,
   NLPSearchParser,
   PriceIntelligence,
-  InteractionType,
   type DiscoveredSource,
-  type UserPreferences as ResponseUserPreferences,
-  type ResponseGenerationOptions,
   type UserPreferences as RecommendationUserPreferences,
+  type InquiryUserPreferences,
   type PropertyInteraction,
-  type RecommendedProperty,
-  type PriceAnalysis,
 } from '@house-finder/extraction-engine';
 import type { UnifiedHouseModel } from '@house-finder/domain';
 
@@ -354,7 +349,7 @@ export const generateResponse = onRequest({ cors: true }, async (request, respon
       specificQuestions = [],
     } = request.body as {
       propertyId: string;
-      userPreferences: UserPreferences;
+      userPreferences: InquiryUserPreferences;
       language?: string;
       tone?: string;
       includeViewingRequest?: boolean;
@@ -852,19 +847,19 @@ function filterPropertiesByPreferences(
     }
 
     // Rooms filter
-    if (preferences.minRooms != null && property.rooms != null) {
-      if (property.rooms < preferences.minRooms) return false;
+    if (preferences.minRooms != null && property.details?.totalRooms != null) {
+      if (property.details?.totalRooms < preferences.minRooms) return false;
     }
-    if (preferences.maxRooms != null && property.rooms != null) {
-      if (property.rooms > preferences.maxRooms) return false;
+    if (preferences.maxRooms != null && property.details?.totalRooms != null) {
+      if (property.details?.totalRooms > preferences.maxRooms) return false;
     }
 
     // Area filter
-    if (preferences.minArea != null && property.area != null) {
-      if (property.area < preferences.minArea) return false;
+    if (preferences.minArea != null && property.details?.livingArea != null) {
+      if (property.details?.livingArea < preferences.minArea) return false;
     }
-    if (preferences.maxArea != null && property.area != null) {
-      if (property.area > preferences.maxArea) return false;
+    if (preferences.maxArea != null && property.details?.livingArea != null) {
+      if (property.details?.livingArea > preferences.maxArea) return false;
     }
 
     return true;
