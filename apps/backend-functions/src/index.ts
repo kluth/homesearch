@@ -936,6 +936,235 @@ async function simulateExtraction(
   return [];
 }
 /**
+ * HTTPS Function: Start Onboarding Conversation
+ * Creates a new conversational onboarding session
+ */
+export const startOnboarding = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { userId } = request.body as { userId: string };
+
+    if (!userId) {
+      response.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    const { ConversationalOnboardingService } = await import('./onboarding/conversational-onboarding.js');
+    const onboardingService = new ConversationalOnboardingService(db);
+
+    const conversation = await onboardingService.startConversation(userId);
+
+    console.log(`Started onboarding conversation ${conversation.id} for user ${userId}`);
+
+    response.json({
+      message: 'Onboarding conversation started',
+      conversation,
+    });
+  } catch (error) {
+    console.error('Error starting onboarding:', error);
+    response.status(500).json({
+      error: 'Failed to start onboarding',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Process Onboarding Message
+ * Processes a user message in an onboarding conversation
+ */
+export const processOnboardingMessage = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { conversationId, message } = request.body as {
+      conversationId: string;
+      message: string;
+    };
+
+    if (!conversationId || !message) {
+      response.status(400).json({ error: 'Conversation ID and message are required' });
+      return;
+    }
+
+    const { ConversationalOnboardingService } = await import('./onboarding/conversational-onboarding.js');
+    const onboardingService = new ConversationalOnboardingService(db);
+
+    const result = await onboardingService.processMessage(conversationId, message);
+
+    console.log(`Processed message in conversation ${conversationId}`);
+
+    response.json({
+      message: 'Message processed successfully',
+      conversation: result.conversation,
+      response: result.response,
+      questions: result.questions,
+      shouldCreateAgents: result.conversation.stage === 'agent_creation',
+    });
+  } catch (error) {
+    console.error('Error processing onboarding message:', error);
+    response.status(500).json({
+      error: 'Failed to process message',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Create Search Agents from Conversation
+ * Creates search agents based on completed onboarding conversation
+ */
+export const createSearchAgentsFromConversation = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { conversationId } = request.body as { conversationId: string };
+
+    if (!conversationId) {
+      response.status(400).json({ error: 'Conversation ID is required' });
+      return;
+    }
+
+    const { ConversationalOnboardingService } = await import('./onboarding/conversational-onboarding.js');
+    const onboardingService = new ConversationalOnboardingService(db);
+
+    const agents = await onboardingService.createSearchAgents(conversationId);
+
+    console.log(`Created ${agents.length} search agents from conversation ${conversationId}`);
+
+    // Mark conversation as completed
+    await db.collection('onboarding_conversations').doc(conversationId).update({
+      status: 'completed',
+      stage: 'completed',
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    response.json({
+      message: `Successfully created ${agents.length} search agents`,
+      agents,
+    });
+  } catch (error) {
+    console.error('Error creating search agents:', error);
+    response.status(500).json({
+      error: 'Failed to create search agents',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get Onboarding Conversation
+ * Retrieves the current state of an onboarding conversation
+ */
+export const getOnboardingConversation = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { conversationId } = request.query as { conversationId: string };
+
+    if (!conversationId) {
+      response.status(400).json({ error: 'Conversation ID is required' });
+      return;
+    }
+
+    const conversationDoc = await db
+      .collection('onboarding_conversations')
+      .doc(conversationId)
+      .get();
+
+    if (!conversationDoc.exists) {
+      response.status(404).json({ error: 'Conversation not found' });
+      return;
+    }
+
+    response.json(conversationDoc.data());
+  } catch (error) {
+    console.error('Error getting onboarding conversation:', error);
+    response.status(500).json({
+      error: 'Failed to get conversation',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Get User Search Agents
+ * Retrieves all search agents for a user
+ */
+export const getUserSearchAgents = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { userId, activeOnly = false } = request.query as {
+      userId: string;
+      activeOnly?: boolean;
+    };
+
+    if (!userId) {
+      response.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    let query = db.collection('search_agents').where('userId', '==', userId);
+
+    if (activeOnly) {
+      query = query.where('active', '==', true) as admin.firestore.Query;
+    }
+
+    const snapshot = await query.orderBy('createdAt', 'desc').get();
+    const agents = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    console.log(`Retrieved ${agents.length} search agents for user ${userId}`);
+
+    response.json({
+      message: 'Search agents retrieved successfully',
+      agents,
+    });
+  } catch (error) {
+    console.error('Error getting search agents:', error);
+    response.status(500).json({
+      error: 'Failed to get search agents',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * HTTPS Function: Update Search Agent
+ * Updates a search agent's criteria or settings
+ */
+export const updateSearchAgent = onRequest({ cors: true }, async (request, response) => {
+  try {
+    const { agentId, updates } = request.body as {
+      agentId: string;
+      updates: Record<string, any>;
+    };
+
+    if (!agentId || !updates) {
+      response.status(400).json({ error: 'Agent ID and updates are required' });
+      return;
+    }
+
+    const agentRef = db.collection('search_agents').doc(agentId);
+    const agentDoc = await agentRef.get();
+
+    if (!agentDoc.exists) {
+      response.status(404).json({ error: 'Search agent not found' });
+      return;
+    }
+
+    await agentRef.update({
+      ...updates,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`Updated search agent ${agentId}`);
+
+    response.json({
+      message: 'Search agent updated successfully',
+      agentId,
+    });
+  } catch (error) {
+    console.error('Error updating search agent:', error);
+    response.status(500).json({
+      error: 'Failed to update search agent',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
  * Authentication Triggers
  *
  * NOTE: Full user management API available in auth-functions.ts requires Express.

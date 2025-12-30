@@ -12,3 +12,4 @@ export * from './lib/integrations/index.js';
 export * from './lib/automation/index.js';
 export * from './lib/reporting/index.js';
 export * from './lib/i18n/index.js';
+export * from './lib/onboarding/index.js';
