@@ -99,7 +99,7 @@ export class DataTransformerService {
 
       // Merge amenities
       if (house.amenities != null) {
-        house.amenities.forEach((a) => mergedAmenities.add(a));
+        house.amenities.forEach((a: string) => mergedAmenities.add(a));
       }
     }
 
