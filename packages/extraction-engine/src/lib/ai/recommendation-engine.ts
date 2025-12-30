@@ -321,7 +321,7 @@ export class RecommendationEngine {
 
     // Room count
     if (preferences?.minRooms != null || preferences?.maxRooms != null) {
-      const rooms = property.rooms;
+      const rooms = property.details?.totalRooms;
       if (rooms != null) {
         const min = preferences?.minRooms ?? 0;
         const max = preferences?.maxRooms ?? Infinity;
@@ -336,7 +336,7 @@ export class RecommendationEngine {
 
     // Area
     if (preferences?.minArea != null || preferences?.maxArea != null) {
-      const area = property.area;
+      const area = property.details?.livingArea;
       if (area != null) {
         const min = preferences?.minArea ?? 0;
         const max = preferences?.maxArea ?? Infinity;
@@ -461,9 +461,9 @@ export class RecommendationEngine {
     }
 
     // From explicit fields
-    if (property.rooms != null) features.push(`${property.rooms} rooms`);
-    if (property.area != null) features.push(`${property.area} sqm`);
-    if (property.type != null) features.push(property.type);
+    if (property.details?.totalRooms != null) features.push(`${property.details?.totalRooms} rooms`);
+    if (property.details?.livingArea != null) features.push(`${property.details?.livingArea} sqm`);
+    if (property.propertyType != null) features.push(property.propertyType);
 
     return features;
   }
@@ -558,7 +558,7 @@ export class RecommendationEngine {
     }
 
     // Premium
-    if (property.price > 2000 && property.area != null && property.area > 100) {
+    if (property.price > 2000 && property.details?.livingArea != null && property.details?.livingArea > 100) {
       tags.push('Premium');
     }
 

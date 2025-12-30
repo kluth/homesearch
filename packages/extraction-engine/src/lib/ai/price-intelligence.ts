@@ -82,8 +82,8 @@ export class PriceIntelligence {
 
     // Calculate price per sqm if area available
     let pricePerSqm: number | undefined;
-    if (property.area != null && property.area > 0) {
-      pricePerSqm = property.price / property.area;
+    if (property.details?.livingArea != null && property.details?.livingArea > 0) {
+      pricePerSqm = property.price / property.details?.livingArea;
     }
 
     // Determine fairness score
@@ -145,23 +145,23 @@ export class PriceIntelligence {
 
       // Similar property type
       if (
-        property.type != null &&
-        comp.type != null &&
-        comp.type.toLowerCase() !== property.type.toLowerCase()
+        property.propertyType != null &&
+        comp.propertyType != null &&
+        comp.propertyType.toLowerCase() !== property.propertyType.toLowerCase()
       ) {
         return false;
       }
 
       // Similar room count (±1 room)
-      if (property.rooms != null && comp.rooms != null) {
-        if (Math.abs(comp.rooms - property.rooms) > 1) {
+      if (property.details?.totalRooms != null && comp.details?.totalRooms != null) {
+        if (Math.abs(comp.details?.totalRooms - property.details?.totalRooms) > 1) {
           return false;
         }
       }
 
       // Similar area (±30%)
-      if (property.area != null && comp.area != null) {
-        const areaDiff = Math.abs(comp.area - property.area) / property.area;
+      if (property.details?.livingArea != null && comp.details?.livingArea != null) {
+        const areaDiff = Math.abs(comp.details?.livingArea - property.details?.livingArea) / property.details?.livingArea;
         if (areaDiff > 0.3) {
           return false;
         }
@@ -240,13 +240,13 @@ export class PriceIntelligence {
       let weight = 1;
 
       // Increase weight for exact room match
-      if (property.rooms === comp.rooms) {
+      if (property.details?.totalRooms === comp.details?.totalRooms) {
         weight *= 1.5;
       }
 
       // Increase weight for similar area
-      if (property.area != null && comp.area != null) {
-        const areaDiff = Math.abs(comp.area - property.area) / property.area;
+      if (property.details?.livingArea != null && comp.details?.livingArea != null) {
+        const areaDiff = Math.abs(comp.details?.livingArea - property.details?.livingArea) / property.details?.livingArea;
         weight *= 1 - areaDiff; // Closer area = higher weight
       }
 
@@ -329,9 +329,9 @@ export class PriceIntelligence {
     if (pricePerSqm != null) {
       const avgPricePerSqm =
         comparables
-          .filter((c) => c.area != null && c.area > 0)
-          .reduce((sum, c) => sum + c.price / c.area!, 0) /
-        comparables.filter((c) => c.area != null).length;
+          .filter((c) => c.details?.livingArea != null && c.details?.livingArea > 0)
+          .reduce((sum, c) => sum + c.price / c.details?.livingArea!, 0) /
+        comparables.filter((c) => c.details?.livingArea != null).length;
 
       const pricePerSqmDiff =
         ((pricePerSqm - avgPricePerSqm) / avgPricePerSqm) * 100;
@@ -409,7 +409,7 @@ export class PriceIntelligence {
     const filtered = historicalData.filter(
       (p) =>
         p.location.city?.toLowerCase() === location.toLowerCase() &&
-        p.type?.toLowerCase() === propertyType.toLowerCase()
+        p.propertyType?.toLowerCase() === propertyType.toLowerCase()
     );
 
     if (filtered.length < 10) {

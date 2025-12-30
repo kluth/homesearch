@@ -160,7 +160,7 @@ export class ResponseGeneratorService {
     const text = `${property.title} ${property.description ?? ''}`.toLowerCase();
 
     // Check for country-specific domains or explicit language markers
-    const source = property.metadata.source.toLowerCase();
+    const source = property.source.toLowerCase();
 
     // Priority 1: Check TLD first (most reliable)
     if (source.includes('.de')) return ResponseLanguage.GERMAN;
@@ -262,7 +262,7 @@ export class ResponseGeneratorService {
     tone: ResponseTone
   ): string {
     return template.interestStatement
-      .replace('{propertyType}', property.type ?? 'property')
+      .replace('{propertyType}', property.propertyType ?? 'property')
       .replace('{location}', property.location.city ?? '');
   }
 

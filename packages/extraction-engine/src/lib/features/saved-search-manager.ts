@@ -416,19 +416,19 @@ export class SavedSearchManager {
       }
 
       // Rooms
-      if (preferences.minRooms != null && property.rooms != null) {
-        if (property.rooms < preferences.minRooms) return false;
+      if (preferences.minRooms != null && property.details?.totalRooms != null) {
+        if (property.details?.totalRooms < preferences.minRooms) return false;
       }
-      if (preferences.maxRooms != null && property.rooms != null) {
-        if (property.rooms > preferences.maxRooms) return false;
+      if (preferences.maxRooms != null && property.details?.totalRooms != null) {
+        if (property.details?.totalRooms > preferences.maxRooms) return false;
       }
 
       // Area
-      if (preferences.minArea != null && property.area != null) {
-        if (property.area < preferences.minArea) return false;
+      if (preferences.minArea != null && property.details?.livingArea != null) {
+        if (property.details?.livingArea < preferences.minArea) return false;
       }
-      if (preferences.maxArea != null && property.area != null) {
-        if (property.area > preferences.maxArea) return false;
+      if (preferences.maxArea != null && property.details?.livingArea != null) {
+        if (property.details?.livingArea > preferences.maxArea) return false;
       }
 
       return true;

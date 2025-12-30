@@ -148,11 +148,11 @@ export class PropertyComparisonTool {
       });
 
       // Price per sqm
-      if (property.area != null && property.area > 0) {
-        const pricePerSqm = property.price / property.area;
+      if (property.details?.livingArea != null && property.details?.livingArea > 0) {
+        const pricePerSqm = property.price / property.details?.livingArea;
         const allPricesPerSqm = properties
-          .filter((p) => p.area != null && p.area > 0)
-          .map((p) => p.price / p.area!);
+          .filter((p) => p.details?.livingArea != null && p.details?.livingArea > 0)
+          .map((p) => p.price / p.details?.livingArea!);
 
         propertyValues.set('Price per m²', {
           value: pricePerSqm,
@@ -163,29 +163,29 @@ export class PropertyComparisonTool {
       }
 
       // Area
-      if (property.area != null) {
+      if (property.details?.livingArea != null) {
         propertyValues.set('Area', {
-          value: property.area,
-          displayValue: `${property.area} m²`,
-          score: this.normalizeScore(property.area, properties.map((p) => p.area ?? 0)),
-          highlight: this.isExtreme(property.area, properties.map((p) => p.area ?? 0)),
+          value: property.details?.livingArea,
+          displayValue: `${property.details?.livingArea} m²`,
+          score: this.normalizeScore(property.details?.livingArea, properties.map((p) => p.details?.livingArea ?? 0)),
+          highlight: this.isExtreme(property.details?.livingArea, properties.map((p) => p.details?.livingArea ?? 0)),
         });
       }
 
       // Rooms
-      if (property.rooms != null) {
+      if (property.details?.totalRooms != null) {
         propertyValues.set('Rooms', {
-          value: property.rooms,
-          displayValue: `${property.rooms}`,
-          score: this.normalizeScore(property.rooms, properties.map((p) => p.rooms ?? 0)),
-          highlight: this.isExtreme(property.rooms, properties.map((p) => p.rooms ?? 0)),
+          value: property.details?.totalRooms,
+          displayValue: `${property.details?.totalRooms}`,
+          score: this.normalizeScore(property.details?.totalRooms, properties.map((p) => p.details?.totalRooms ?? 0)),
+          highlight: this.isExtreme(property.details?.totalRooms, properties.map((p) => p.details?.totalRooms ?? 0)),
         });
       }
 
       // Type
       propertyValues.set('Type', {
-        value: property.type,
-        displayValue: property.type ?? 'Unknown',
+        value: property.propertyType,
+        displayValue: property.propertyType ?? 'Unknown',
         score: 50, // Neutral for categorical data
         highlight: 'neutral',
       });
@@ -241,21 +241,21 @@ export class PropertyComparisonTool {
           displayValue = `€${property.price.toLocaleString()}`;
           break;
         case 'area':
-          value = property.area ?? 0;
-          displayValue = property.area != null ? `${property.area} m²` : 'N/A';
+          value = property.details?.livingArea ?? 0;
+          displayValue = property.details?.livingArea != null ? `${property.details?.livingArea} m²` : 'N/A';
           break;
         case 'rooms':
-          value = property.rooms ?? 0;
-          displayValue = property.rooms != null ? `${property.rooms}` : 'N/A';
+          value = property.details?.totalRooms ?? 0;
+          displayValue = property.details?.totalRooms != null ? `${property.details?.totalRooms}` : 'N/A';
           break;
         case 'value':
           value =
-            property.area != null && property.area > 0
-              ? property.price / property.area
+            property.details?.livingArea != null && property.details?.livingArea > 0
+              ? property.price / property.details?.livingArea
               : Infinity;
           displayValue =
-            property.area != null && property.area > 0
-              ? `€${(property.price / property.area).toFixed(2)}/m²`
+            property.details?.livingArea != null && property.details?.livingArea > 0
+              ? `€${(property.price / property.details?.livingArea).toFixed(2)}/m²`
               : 'N/A';
           break;
         default:
@@ -306,28 +306,28 @@ export class PropertyComparisonTool {
       Math.max(...prices.map((p) => p.price)) - Math.min(...prices.map((p) => p.price));
 
     // Best value (price per sqm)
-    const withArea = properties.filter((p) => p.area != null && p.area > 0);
+    const withArea = properties.filter((p) => p.details?.livingArea != null && p.details?.livingArea > 0);
     const bestValue =
       withArea.length > 0
         ? withArea.reduce((best, p) => {
-            const bestRatio = best.price / (best.area ?? 1);
-            const pRatio = p.price / (p.area ?? 1);
+            const bestRatio = best.price / (best.details?.livingArea ?? 1);
+            const pRatio = p.price / (p.details?.livingArea ?? 1);
             return pRatio < bestRatio ? p : best;
           }).id
         : properties[0].id;
 
     // Size analysis
     const areas = properties
-      .filter((p) => p.area != null)
-      .map((p) => ({ id: p.id, area: p.area! }));
+      .filter((p) => p.details?.livingArea != null)
+      .map((p) => ({ id: p.id, area: p.details?.livingArea! }));
     const largest = areas.length > 0 ? areas.reduce((max, p) => (p.area > max.area ? p : max)).id : properties[0].id;
     const smallest = areas.length > 0 ? areas.reduce((min, p) => (p.area < min.area ? p : min)).id : properties[0].id;
     const averageArea =
       areas.length > 0 ? areas.reduce((sum, p) => sum + p.area, 0) / areas.length : 0;
 
     const rooms = properties
-      .filter((p) => p.rooms != null)
-      .map((p) => ({ id: p.id, rooms: p.rooms! }));
+      .filter((p) => p.details?.totalRooms != null)
+      .map((p) => ({ id: p.id, rooms: p.details?.totalRooms! }));
     const mostRooms =
       rooms.length > 0
         ? rooms.reduce((max, p) => (p.rooms > max.rooms ? p : max)).id
@@ -429,15 +429,15 @@ export class PropertyComparisonTool {
 
     // By area (largest to smallest)
     const byArea = [...properties]
-      .sort((a, b) => (b.area ?? 0) - (a.area ?? 0))
+      .sort((a, b) => (b.details?.livingArea ?? 0) - (a.details?.livingArea ?? 0))
       .map((p) => p.id);
 
     // By value (lowest price per sqm to highest)
     const byValue = [...properties]
-      .filter((p) => p.area != null && p.area > 0)
+      .filter((p) => p.details?.livingArea != null && p.details?.livingArea > 0)
       .sort((a, b) => {
-        const aValue = a.price / (a.area ?? 1);
-        const bValue = b.price / (b.area ?? 1);
+        const aValue = a.price / (a.details?.livingArea ?? 1);
+        const bValue = b.price / (b.details?.livingArea ?? 1);
         return aValue - bValue;
       })
       .map((p) => p.id);
@@ -487,7 +487,7 @@ export class PropertyComparisonTool {
     // Value recommendations
     const bestValueProp = properties.find((p) => p.id === insights.priceAnalysis.bestValue);
     if (bestValueProp != null) {
-      const bestValueRatio = bestValueProp.price / (bestValueProp.area ?? 1);
+      const bestValueRatio = bestValueProp.price / (bestValueProp.details?.livingArea ?? 1);
       recommendations.push(
         `Best value: ${bestValueProp.title} at €${bestValueRatio.toFixed(2)}/m²`
       );
@@ -574,13 +574,13 @@ export class PropertyComparisonTool {
     score += (1500 - property.price) / 100; // Assuming 1500 is target
 
     // Area (larger is better)
-    if (property.area != null) {
-      score += property.area / 10;
+    if (property.details?.livingArea != null) {
+      score += property.details?.livingArea / 10;
     }
 
     // Rooms (more is better)
-    if (property.rooms != null) {
-      score += property.rooms * 5;
+    if (property.details?.totalRooms != null) {
+      score += property.details?.totalRooms * 5;
     }
 
     // Recency (newer is better)
@@ -597,13 +597,13 @@ export class PropertyComparisonTool {
     let score = 0;
 
     // Rooms (more rooms = better for families)
-    if (property.rooms != null) {
-      score += property.rooms * 15;
+    if (property.details?.totalRooms != null) {
+      score += property.details?.totalRooms * 15;
     }
 
     // Area (larger = better)
-    if (property.area != null) {
-      score += property.area / 5;
+    if (property.details?.livingArea != null) {
+      score += property.details?.livingArea / 5;
     }
 
     // Features
@@ -646,8 +646,8 @@ export class PropertyComparisonTool {
     let score = 0;
 
     // Price per sqm (lower is better)
-    if (property.area != null && property.area > 0) {
-      const pricePerSqm = property.price / property.area;
+    if (property.details?.livingArea != null && property.details?.livingArea > 0) {
+      const pricePerSqm = property.price / property.details?.livingArea;
       score += Math.max(0, 100 - pricePerSqm * 5);
     }
 
@@ -688,8 +688,8 @@ export class PropertyComparisonTool {
   ): number {
     const values = isPricePerSqm
       ? properties
-          .filter((p) => p.area != null && p.area > 0)
-          .map((p) => p.price / p.area!)
+          .filter((p) => p.details?.livingArea != null && p.details?.livingArea > 0)
+          .map((p) => p.price / p.details?.livingArea!)
       : properties.map((p) => p.price);
 
     const min = Math.min(...values);

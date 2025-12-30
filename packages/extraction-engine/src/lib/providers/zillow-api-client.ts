@@ -270,7 +270,7 @@ export class ZillowApiClient extends BaseApiClient {
         : undefined,
       metadata: {
         extractedAt: new Date(),
-        rawData: property,
+        rawData: property as unknown as Record<string, unknown>,
       },
     });
   }

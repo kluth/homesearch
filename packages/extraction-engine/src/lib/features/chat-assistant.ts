@@ -510,9 +510,9 @@ What would you like to do?`;
     } else if (/expensive|higher price|premium/i.test(lowerMessage)) {
       filtered = filtered.sort((a, b) => b.price - a.price);
     } else if (/larger|bigger|more space/i.test(lowerMessage)) {
-      filtered = filtered.sort((a, b) => (b.area ?? 0) - (a.area ?? 0));
+      filtered = filtered.sort((a, b) => (b.details?.livingArea ?? 0) - (a.details?.livingArea ?? 0));
     } else if (/smaller|compact/i.test(lowerMessage)) {
-      filtered = filtered.sort((a, b) => (a.area ?? 0) - (b.area ?? 0));
+      filtered = filtered.sort((a, b) => (a.details?.livingArea ?? 0) - (b.details?.livingArea ?? 0));
     }
 
     const results = filtered.slice(0, 10);
@@ -562,9 +562,9 @@ What would you like to do?`;
 
 📍 Location: ${property.location.city}${property.location.country ? ', ' + property.location.country : ''}
 💰 Price: €${property.price}/month
-📐 Size: ${property.area ?? 'N/A'} m²
-🚪 Rooms: ${property.rooms ?? 'N/A'}
-🏢 Type: ${property.type ?? 'N/A'}
+📐 Size: ${property.details?.livingArea ?? 'N/A'} m²
+🚪 Rooms: ${property.details?.totalRooms ?? 'N/A'}
+🏢 Type: ${property.propertyType ?? 'N/A'}
 
 ${property.description ?? 'No description available'}
 
