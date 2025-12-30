@@ -14,7 +14,7 @@ export const DealScoreSchema = z.object({
       score: z.number(),
       weight: z.number(),
       vsMarket: z.number(),
-      vsCom ps: z.number(),
+      vsComps: z.number(),
       trend: z.enum(['overpriced', 'fair', 'good_deal', 'great_deal']),
     }),
     location: z.object({

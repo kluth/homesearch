@@ -35,7 +35,7 @@ export const PricePointSchema = z.object({
   sampleSize: z.number().int().nonnegative(),
 });
 
-export const MarketTrendSchema = z.object({
+export const MarketTrendAnalysisSchema = z.object({
   location: z.string(),
   propertyType: z.enum(['all', 'house', 'apartment', 'condo', 'land']),
   timeframe: z.enum(['1_month', '3_months', '6_months', '1_year', '3_years', '5_years']),
@@ -200,7 +200,7 @@ export const MarketAlertSchema = z.object({
 // ============================================================================
 
 export type PricePoint = z.infer<typeof PricePointSchema>;
-export type MarketTrend = z.infer<typeof MarketTrendSchema>;
+export type MarketTrendAnalysis = z.infer<typeof MarketTrendAnalysisSchema>;
 export type MarketHeatMap = z.infer<typeof MarketHeatMapSchema>;
 export type SupplyDemandMetrics = z.infer<typeof SupplyDemandMetricsSchema>;
 export type InventoryAnalysis = z.infer<typeof InventoryAnalysisSchema>;

@@ -77,7 +77,6 @@ export class RentVsBuyCalculator {
       portfolioValue10Years: down * 1.08 ** 10 + ((buy.monthlyPayment - rent) * 12 * ((1.08 ** 10 - 1) / 0.08)),
     };
 
-    const breakEvenYears = 5.2;
     const breakEven = { years: 5, months: 2 };
 
     const recommendation = buy.netPosition10Years > rentObj.netPosition10Years + investment.portfolioValue10Years ? 'buy' as const : 'rent' as const;

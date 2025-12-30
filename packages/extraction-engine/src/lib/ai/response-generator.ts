@@ -31,7 +31,7 @@ export enum ResponseTone {
 /**
  * User preferences for response generation
  */
-export interface UserPreferences {
+export interface InquiryUserPreferences {
   name?: string;
   email?: string;
   phone?: string;
@@ -58,7 +58,7 @@ export interface GeneratedResponse {
  */
 export interface ResponseGenerationOptions {
   property: UnifiedHouseModel;
-  userPreferences: UserPreferences;
+  userPreferences: InquiryUserPreferences;
   language?: ResponseLanguage; // If not provided, auto-detect from property
   tone?: ResponseTone;
   includeViewingRequest?: boolean;
@@ -245,7 +245,7 @@ export class ResponseGeneratorService {
   private buildIntroduction(
     template: ResponseTemplate,
     property: UnifiedHouseModel,
-    userPreferences: UserPreferences
+    userPreferences: InquiryUserPreferences
   ): string {
     return template.introduction
       .replace('{propertyTitle}', property.title)
@@ -271,7 +271,7 @@ export class ResponseGeneratorService {
    */
   private buildViewingRequest(
     template: ResponseTemplate,
-    userPreferences: UserPreferences
+    userPreferences: InquiryUserPreferences
   ): string {
     let request = template.viewingRequest;
 
@@ -289,7 +289,7 @@ export class ResponseGeneratorService {
    */
   private buildPersonalInfo(
     template: ResponseTemplate,
-    userPreferences: UserPreferences
+    userPreferences: InquiryUserPreferences
   ): string {
     const info: string[] = [];
 
@@ -338,7 +338,7 @@ export class ResponseGeneratorService {
    */
   private buildSignature(
     template: ResponseTemplate,
-    userPreferences: UserPreferences
+    userPreferences: InquiryUserPreferences
   ): string {
     const parts: string[] = [];
 
@@ -499,7 +499,7 @@ export class ResponseGeneratorService {
   /**
    * Validate user preferences
    */
-  public validatePreferences(preferences: UserPreferences): boolean {
+  public validatePreferences(preferences: InquiryUserPreferences): boolean {
     // At minimum, we need a name or email
     return preferences.name != null || preferences.email != null;
   }

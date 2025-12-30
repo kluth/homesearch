@@ -212,7 +212,7 @@ export interface PropertyReview {
 /**
  * Neighborhood insights
  */
-export interface NeighborhoodInsights {
+export interface CommunityNeighborhoodInsights {
   neighborhood: string;
   city: string;
   overallRating: number; // 1-5
@@ -658,7 +658,7 @@ export class CommunityManager {
   /**
    * Create empty neighborhood insights
    */
-  private createEmptyInsights(neighborhood: string): NeighborhoodInsights {
+  private createEmptyInsights(neighborhood: string): CommunityNeighborhoodInsights {
     return {
       neighborhood,
       city: 'Unknown',
