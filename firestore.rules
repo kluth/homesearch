@@ -71,6 +71,24 @@ service cloud.firestore {
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active');
     }
 
+    /**
+     * Check if user has premium plan (basic or higher)
+     */
+    function hasPremiumPlan() {
+      return isAuthenticated()
+        && request.auth.token.subscriptionPlan != null
+        && request.auth.token.subscriptionPlan in ['basic', 'premium', 'pro', 'enterprise'];
+    }
+
+    /**
+     * Check if user has specific subscription plan
+     */
+    function hasSubscriptionPlan(plan) {
+      return isAuthenticated()
+        && request.auth.token.subscriptionPlan != null
+        && request.auth.token.subscriptionPlan == plan;
+    }
+
     // =============================================
     // USER MANAGEMENT
     // =============================================
@@ -370,6 +388,174 @@ service cloud.firestore {
       allow read: if isAdmin();
 
       allow write: if hasRole('super_admin');
+    }
+
+    // =============================================
+    // MONETIZATION
+    // =============================================
+
+    /**
+     * Subscriptions
+     * Users can read their own subscription
+     * Only functions can create/update
+     */
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only functions can write subscriptions
+      allow write: if false;
+    }
+
+    /**
+     * Payment Intents
+     * Users can read their own payment intents
+     */
+    match /payment_intents/{paymentId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      // Only functions update payment status
+      allow update, delete: if false;
+    }
+
+    /**
+     * Payment Methods
+     * Users can manage their own payment methods
+     */
+    match /payment_methods/{methodId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isAuthenticated()
+        && isEmailVerified()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Promoted Listings
+     * Agents can promote their listings
+     * Everyone can view promotions (for display)
+     */
+    match /promoted_listings/{promotionId} {
+      allow read: if true; // Public read for displaying promoted properties
+
+      allow create: if hasAnyRole(['agent', 'admin', 'super_admin'])
+        && isActiveUser()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if hasAnyRole(['agent', 'admin', 'super_admin'])
+        && resource.data.userId == request.auth.uid;
+
+      allow delete: if hasAnyRole(['agent', 'admin', 'super_admin'])
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    /**
+     * Ad Placements
+     * Admins manage ads
+     * Users see ads based on their plan
+     */
+    match /ad_placements/{adId} {
+      allow read: if true; // Public read for displaying ads
+
+      allow write: if isAdmin(); // Only admins manage ads
+    }
+
+    /**
+     * Usage Tracking
+     * Users can read their own usage
+     * Functions track usage
+     */
+    match /usage_tracking/{usageId} {
+      allow read: if isAuthenticated()
+        && (usageId.matches(request.auth.token.workspaceId + '_.*') || isAdmin());
+
+      // Only functions track usage
+      allow write: if false;
+    }
+
+    /**
+     * Waiting Content - Language Lessons
+     * Premium users get access to all content
+     * Free users get limited access
+     */
+    match /waiting_content_language/{lessonId} {
+      allow read: if isAuthenticated()
+        && (hasPremiumPlan() || resource.data.difficulty == 'beginner');
+    }
+
+    /**
+     * Waiting Content - Cultural Insights
+     */
+    match /waiting_content_culture/{insightId} {
+      allow read: if isAuthenticated();
+    }
+
+    /**
+     * Waiting Content - Food Culture
+     */
+    match /waiting_content_food/{foodId} {
+      allow read: if isAuthenticated();
+    }
+
+    /**
+     * Waiting Content - Local Tips
+     */
+    match /waiting_content_tips/{tipId} {
+      allow read: if isAuthenticated();
+
+      // Users can upvote tips
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes']);
+    }
+
+    /**
+     * Waiting Content - Moving Checklist
+     */
+    match /waiting_content_moving/{itemId} {
+      allow read: if isAuthenticated();
+    }
+
+    /**
+     * Waiting Content - Design Inspiration
+     */
+    match /waiting_content_design/{designId} {
+      allow read: if isAuthenticated();
+
+      // Users can save designs
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['saves']);
+    }
+
+    /**
+     * Waiting Content Progress
+     * Users can read and update their own progress
+     */
+    match /waiting_content_progress/{userId} {
+      allow read: if isAuthenticated()
+        && (userId == request.auth.uid || isAdmin());
+
+      allow write: if isAuthenticated()
+        && userId == request.auth.uid;
+    }
+
+    /**
+     * Invoices
+     * Users can read their own invoices
+     */
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only functions generate invoices
+      allow write: if false;
     }
 
     // =============================================
