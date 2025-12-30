@@ -265,7 +265,6 @@ export class SourceConfigManager {
         cz: 'czech republic',
         // Common state abbreviations (US)
         ny: 'new york',
-        ca: 'california',
         tx: 'texas',
         fl: 'florida',
       },

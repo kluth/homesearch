@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 export const ZoningInfoSchema = z.object({
   propertyId: z.string(),
-  zoneDes ignation: z.string(),
+  zoneDesignation: z.string(),
   zoneDescription: z.string(),
   allowedUses: z.array(z.string()),
   prohibitedUses: z.array(z.string()),
@@ -527,7 +527,7 @@ export class LegalComplianceChecker {
       boundaryDisputes: [],
       fenceLocations: [],
       recommendNewSurvey: !surveyData || new Date(surveyData.date).getFullYear() < new Date().getFullYear() - 10,
-      surveyCostEstimate: 500,
+      surveyKostEstimate: 500,
     };
   }
 

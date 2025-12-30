@@ -278,8 +278,6 @@ export interface PersonalizedRecommendation {
 // ============================================================================
 
 export class NeighborhoodAnalytics {
-  private readonly EARTH_RADIUS_KM = 6371;
-
   /**
    * Calculates a comprehensive score for a neighborhood
    */
@@ -848,9 +846,5 @@ export class NeighborhoodAnalytics {
     };
 
     return descriptions[category]?.[type] ?? category;
-  }
-
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
   }
 }

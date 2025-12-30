@@ -267,7 +267,7 @@ export class CommunityManager {
   private groupViewings: Map<string, GroupViewing> = new Map();
   private sharedWishlists: Map<string, SharedWishlist> = new Map();
   private propertyReviews: Map<string, PropertyReview[]> = new Map(); // propertyId -> reviews
-  private neighborhoodInsights: Map<string, NeighborhoodInsights> = new Map();
+  private neighborhoodInsights: Map<string, CommunityNeighborhoodInsights> = new Map();
   private movingBuddies: Map<string, MovingBuddyRequest> = new Map();
 
   /**

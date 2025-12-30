@@ -113,7 +113,7 @@ export class RecommendationEngine {
     // Score all properties
     const scoredProperties = availableProperties.map((property) => {
       const score = this.scoreProperty(property, preferences, interactions);
-      const reasons = this.generateReasons(property, preferences, score);
+      const reasons = this.generateReasons(property, score, preferences);
       const tags = this.generateTags(property, preferences);
 
       return {
@@ -473,8 +473,8 @@ export class RecommendationEngine {
    */
   private generateReasons(
     property: UnifiedHouseModel,
-    preferences?: UserPreferences,
-    score: PropertyScore
+    score: PropertyScore,
+    preferences?: UserPreferences
   ): string[] {
     const reasons: string[] = [];
 

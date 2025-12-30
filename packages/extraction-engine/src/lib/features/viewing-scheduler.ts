@@ -430,48 +430,6 @@ export class ViewingScheduler {
   }
 
   /**
-   * Clusters properties by geographic proximity
-   */
-  private clusterPropertiesByLocation(properties: PropertyLocation[]): PropertyLocation[][] {
-    // Simple clustering based on distance threshold (10 km)
-    const CLUSTER_THRESHOLD_KM = 10;
-    const clusters: PropertyLocation[][] = [];
-    const assigned = new Set<string>();
-
-    for (const property of properties) {
-      if (assigned.has(property.propertyId)) {
-        continue;
-      }
-
-      const cluster: PropertyLocation[] = [property];
-      assigned.add(property.propertyId);
-
-      // Find nearby properties
-      for (const other of properties) {
-        if (assigned.has(other.propertyId)) {
-          continue;
-        }
-
-        const distance = this.calculateDistance(
-          property.latitude,
-          property.longitude,
-          other.latitude,
-          other.longitude
-        );
-
-        if (distance <= CLUSTER_THRESHOLD_KM) {
-          cluster.push(other);
-          assigned.add(other.propertyId);
-        }
-      }
-
-      clusters.push(cluster);
-    }
-
-    return clusters;
-  }
-
-  /**
    * Checks if a time is within preferred hours
    */
   private isWithinPreferredHours(

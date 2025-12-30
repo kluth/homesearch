@@ -97,7 +97,7 @@ export const InventoryAnalysisSchema = z.object({
   totalInventory: z.number().int().nonnegative(),
   averageListPrice: z.number().nonnegative(),
   medianListPrice: z.number().nonnegative(),
-  mostActivePrice RangeMin: z.number().nonnegative(),
+  mostActivePriceRangeMin: z.number().nonnegative(),
   mostActivePriceRangeMax: z.number().nonnegative(),
 });
 
