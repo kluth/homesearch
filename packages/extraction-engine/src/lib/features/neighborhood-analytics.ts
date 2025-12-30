@@ -223,7 +223,7 @@ export const NeighborhoodComparisonSchema = z.object({
   ])),
   results: z.array(z.object({
     neighborhood: z.string(),
-    scores: z.record(z.number()),
+    scores: z.record(z.string(), z.number()),
     rank: z.number().int().positive(),
     winner: z.boolean(),
   })),

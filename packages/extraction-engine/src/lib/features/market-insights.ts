@@ -113,7 +113,7 @@ export const DaysOnMarketAnalysisSchema = z.object({
       sampleSize: z.number().int().nonnegative(),
     })
   ),
-  byPropertyType: z.record(z.number().int().nonnegative()),
+  byPropertyType: z.record(z.string(), z.number().int().nonnegative()),
   trend: z.enum(['decreasing', 'stable', 'increasing']),
 });
 
@@ -190,7 +190,7 @@ export const MarketAlertSchema = z.object({
   severity: z.enum(['info', 'warning', 'critical']),
   location: z.string(),
   message: z.string(),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   timestamp: z.string().datetime(),
   expiresAt: z.string().datetime().optional(),
 });

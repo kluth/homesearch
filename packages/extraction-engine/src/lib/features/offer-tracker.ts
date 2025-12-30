@@ -138,7 +138,7 @@ export const NegotiationHistorySchema = z.object({
       ]),
       actor: z.enum(['buyer', 'seller', 'buyer_agent', 'seller_agent', 'system']),
       description: z.string(),
-      metadata: z.record(z.any()).optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
     })
   ),
   counterOffers: z.array(CounterOfferSchema).default([]),
