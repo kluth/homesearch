@@ -4,8 +4,8 @@
  */
 
 import type { UnifiedHouseModel } from '@house-finder/domain';
-import type { UserPreferences } from '../ai/recommendation-engine';
-import type { ParsedSearchQuery } from '../ai/nlp-search-parser';
+import type { UserPreferences } from '../ai/recommendation-engine.js';
+import type { ParsedSearchQuery } from '../ai/nlp-search-parser.js';
 
 /**
  * Chat message

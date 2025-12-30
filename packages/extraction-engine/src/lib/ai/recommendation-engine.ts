@@ -84,7 +84,6 @@ interface PropertyScore {
  */
 export class RecommendationEngine {
   private userInteractions: Map<string, PropertyInteraction[]> = new Map();
-  private propertyFeatures: Map<string, string[]> = new Map();
   private userProfiles: Map<string, UserPreferences> = new Map();
 
   /**

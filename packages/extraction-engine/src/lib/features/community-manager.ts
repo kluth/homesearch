@@ -3,8 +3,6 @@
  * Connect users for roommate matching, group viewings, and shared searches
  */
 
-import type { UnifiedHouseModel } from '@house-finder/domain';
-import type { UserPreferences } from '../ai/recommendation-engine';
 
 /**
  * User profile for community features
@@ -296,7 +294,7 @@ export class CommunityManager {
     const matches: RoommateMatch[] = [];
 
     // Find compatible users
-    for (const [userId, otherRequest] of this.roommateRequests.entries()) {
+    for (const [, otherRequest] of this.roommateRequests.entries()) {
       if (otherRequest.userId === request.userId) continue;
       if (otherRequest.status !== 'active') continue;
 

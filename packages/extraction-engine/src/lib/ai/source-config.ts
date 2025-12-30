@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { DiscoveredSource } from './source-discovery-agent';
+import type { DiscoveredSource } from './source-discovery-agent.js';
 
 /**
  * Persistent configuration for discovered sources

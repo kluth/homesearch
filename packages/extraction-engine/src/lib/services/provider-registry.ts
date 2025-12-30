@@ -1,4 +1,4 @@
-import type { DataProvider, ExtractionResult, SearchParams } from '../providers/base-provider';
+import type { DataProvider, ExtractionResult, SearchParams } from '../providers/base-provider.js';
 
 /**
  * Options for provider registration

@@ -289,7 +289,7 @@ export class LegalComplianceChecker {
       criticalIssues.push('Title issues that must be resolved before purchase');
     }
 
-    const activeens = title.liens.filter(l => l.status === 'active');
+    const activeLiens = title.liens.filter(l => l.status === 'active');
     if (activeLiens.length > 0) {
       const totalLienAmount = activeLiens.reduce((sum, l) => sum + l.amount, 0);
       criticalIssues.push(`Active liens totaling €${Math.round(totalLienAmount).toLocaleString()}`);

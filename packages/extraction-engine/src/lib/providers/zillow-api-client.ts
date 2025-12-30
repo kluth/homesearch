@@ -5,7 +5,7 @@ import {
   type SearchParams,
   type ProviderConfig,
   type ExtractionError,
-} from './base-provider';
+} from './base-provider.js';
 import {
   type UnifiedHouseModel,
   PropertyType,

@@ -327,8 +327,6 @@ export class HOAMeetingAnalyzer {
     hotTopics: HOAMeeting['hotTopics'],
     issues: HOAMeeting['communityIssues']
   ): HOAMeeting['sentiment'] {
-    const openIssues = issues.filter(i => i.status === 'open' || i.status === 'in_progress');
-
     return {
       overall: 'neutral',
       trends: {

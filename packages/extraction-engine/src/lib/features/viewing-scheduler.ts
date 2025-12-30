@@ -184,9 +184,6 @@ export class ViewingScheduler {
   public createSchedule(request: ScheduleRequest): ViewingRoute[] {
     const validatedRequest = ScheduleRequestSchema.parse(request);
 
-    // Group properties by proximity
-    const clusters = this.clusterPropertiesByLocation(validatedRequest.properties);
-
     // Generate possible routes for each day
     const routes: ViewingRoute[] = [];
     const remainingProperties = new Set(validatedRequest.properties.map(p => p.propertyId));

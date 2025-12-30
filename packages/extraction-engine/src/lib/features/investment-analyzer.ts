@@ -206,7 +206,6 @@ export class InvestmentAnalyzer {
 
     // Annual figures
     const annualIncome = effectiveMonthlyIncome * 12;
-    const annualOperatingExpenses = monthlyOperatingExpenses * 12;
     const annualNOI = monthlyNOI * 12;
     const annualCashFlow = monthlyCashFlow * 12;
 
@@ -425,7 +424,6 @@ export class InvestmentAnalyzer {
 
     // Calculate remaining mortgage balance
     const monthlyRate = financing.interestRate / 100 / 12;
-    const numberOfPayments = financing.loanTermYears * 12;
     const paymentsMade = assumptions.holdingPeriodYears * 12;
 
     let remainingBalance = loanAmount;

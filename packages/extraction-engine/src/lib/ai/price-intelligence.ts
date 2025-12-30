@@ -63,8 +63,6 @@ interface PriceStats {
  * Price Intelligence Service
  */
 export class PriceIntelligence {
-  private priceHistory: Map<string, { price: number; timestamp: Date }[]> = new Map();
-
   /**
    * Analyze property price fairness
    */

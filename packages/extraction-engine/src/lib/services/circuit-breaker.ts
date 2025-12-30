@@ -173,7 +173,6 @@ export class CircuitBreaker {
    * Transition to a new state
    */
   private transitionTo(newState: CircuitState): void {
-    const oldState = this.state;
     this.state = newState;
     this.lastStateChange = new Date();
 

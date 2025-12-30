@@ -220,10 +220,10 @@ export class MarketInsightsDashboard {
    */
   public analyzePriceTrends(
     location: string,
-    propertyType: MarketTrend['propertyType'],
-    timeframe: MarketTrend['timeframe'],
+    propertyType: MarketTrendAnalysis['propertyType'],
+    timeframe: MarketTrendAnalysis['timeframe'],
     historicalData: PricePoint[]
-  ): MarketTrend {
+  ): MarketTrendAnalysis {
     if (historicalData.length === 0) {
       throw new Error('No historical data provided');
     }
@@ -240,7 +240,7 @@ export class MarketInsightsDashboard {
     const changePercentage = (changeAmount / firstPrice) * 100;
 
     // Determine trend direction
-    let trendDirection: MarketTrend['trendDirection'];
+    let trendDirection: MarketTrendAnalysis['trendDirection'];
     if (changePercentage > 10) {
       trendDirection = 'strongly_up';
     } else if (changePercentage > 3) {
@@ -758,7 +758,7 @@ export class MarketInsightsDashboard {
   // Helper Methods
   // ============================================================================
 
-  private calculateVolatility(prices: number[]): MarketTrend['volatility'] {
+  private calculateVolatility(prices: number[]): MarketTrendAnalysis['volatility'] {
     if (prices.length < 2) return 'low';
 
     const mean = prices.reduce((sum, p) => sum + p, 0) / prices.length;

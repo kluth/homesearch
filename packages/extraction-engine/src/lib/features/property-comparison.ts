@@ -93,7 +93,7 @@ export interface ComparisonMatrix {
 /**
  * Property Comparison Tool
  */
-export class PropertyComparison Tool {
+export class PropertyComparisonTool {
   /**
    * Compare multiple properties
    */

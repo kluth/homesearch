@@ -3,7 +3,7 @@
  * Parses natural language queries into structured search criteria
  */
 
-import type { UserPreferences } from './recommendation-engine';
+import type { UserPreferences } from './recommendation-engine.js';
 
 /**
  * Parsed search query
@@ -138,20 +138,6 @@ export class NLPSearchParser {
   } {
     const cities: string[] = [];
     const countries: string[] = [];
-
-    // Common prepositions for location
-    const locationMarkers = [
-      'in',
-      'at',
-      'near',
-      'around',
-      'close to',
-      'nahe',
-      'in der nähe',
-      'à',
-      'en',
-      'cerca de',
-    ];
 
     // Major cities database (expand in production)
     const knownCities = [
@@ -378,9 +364,6 @@ export class NLPSearchParser {
 
     // Features with strong indicators (must-have)
     const mustHaveIndicators = ['with', 'must have', 'need', 'requires', 'include'];
-
-    // Features with weak indicators (nice-to-have)
-    const niceToHaveIndicators = ['prefer', 'would like', 'ideally', 'nice to have'];
 
     const features = {
       balcony: ['balcony', 'balkon', 'balcon', 'terraza'],

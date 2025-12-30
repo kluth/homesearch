@@ -3,11 +3,11 @@
  * Demonstrates the full House Finder extraction pipeline
  */
 
-import { ZillowApiClient } from '../providers/zillow-api-client';
-import { Immoscout24Scraper } from '../providers/immoscout24-scraper';
-import { DataTransformerService } from '../services/data-transformer';
-import { ProviderRegistry } from '../services/provider-registry';
-import { CircuitBreaker } from '../services/circuit-breaker';
+import { ZillowApiClient } from '../providers/zillow-api-client.js';
+import { Immoscout24Scraper } from '../providers/immoscout24-scraper.js';
+import { DataTransformerService } from '../services/data-transformer.js';
+import { ProviderRegistry } from '../services/provider-registry.js';
+import { CircuitBreaker } from '../services/circuit-breaker.js';
 
 /**
  * Example 1: Basic Provider Usage

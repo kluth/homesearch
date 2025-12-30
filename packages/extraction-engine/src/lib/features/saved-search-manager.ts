@@ -4,7 +4,7 @@
  */
 
 import type { UnifiedHouseModel } from '@house-finder/domain';
-import type { UserPreferences } from './recommendation-engine';
+import type { UserPreferences } from '../ai/recommendation-engine.js';
 
 /**
  * Saved search configuration

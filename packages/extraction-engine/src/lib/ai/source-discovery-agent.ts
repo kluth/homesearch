@@ -1,8 +1,6 @@
-import type { UnifiedHouseModel } from '@house-finder/domain';
-import type { DataProvider } from '../providers/base-provider';
-import type { ProviderRegistry } from '../services/provider-registry';
-import { SourceConfigManager, type FetchSchedule } from './source-config';
-import { AutoDiscovery } from './auto-discovery';
+import type { ProviderRegistry } from '../services/provider-registry.js';
+import { SourceConfigManager, type FetchSchedule } from './source-config.js';
+import { AutoDiscovery } from './auto-discovery.js';
 
 /**
  * Type of data source
@@ -908,42 +906,6 @@ export class SourceDiscoveryAgent {
   }
 
   /**
-   * Detect language for a location
-   */
-  private detectLanguageForLocation(location: string): string {
-    const normalizedLocation = location.toLowerCase();
-
-    const languageMap: Record<string, string> = {
-      germany: 'de',
-      deutschland: 'de',
-      france: 'fr',
-      frankreich: 'fr',
-      spain: 'es',
-      españa: 'es',
-      spanien: 'es',
-      italy: 'it',
-      italia: 'it',
-      italien: 'it',
-      'united kingdom': 'en',
-      uk: 'en',
-      britain: 'en',
-      'united states': 'en',
-      usa: 'en',
-      us: 'en',
-      canada: 'en',
-      kanada: 'en',
-    };
-
-    for (const [key, language] of Object.entries(languageMap)) {
-      if (normalizedLocation.includes(key) || key.includes(normalizedLocation)) {
-        return language;
-      }
-    }
-
-    return 'en'; // Default to English
-  }
-
-  /**
    * Check if URL is reachable (simplified version)
    */
   private async checkUrlReachability(url: string): Promise<boolean> {
@@ -1109,7 +1071,6 @@ export class ${className} extends BaseScraper {
   private generateApiClientCode(source: DiscoveredSource): string {
     const className = this.toPascalCase(source.name) + 'ApiClient';
     const searchEndpoint = source.apiEndpoints?.search ?? '/v1/properties/search';
-    const detailsEndpoint = source.apiEndpoints?.details ?? '/v1/properties/:id';
 
     return `import { BaseApiClient } from '../providers/base-provider';
 import type { UnifiedHouseModel, PropertyType, ListingStatus } from '@house-finder/domain';

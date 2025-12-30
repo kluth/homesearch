@@ -234,9 +234,6 @@ export class Exchange1031Advisor {
     }
 
     // Debt requirement
-    const relinquishedEquity = relinquishedValue - relinquishedMortgage;
-    const replacementEquity = replacementValue - replacementMortgage;
-
     if (replacementMortgage < relinquishedMortgage) {
       bootDebt = relinquishedMortgage - replacementMortgage;
       warnings.push(`Mortgage reduction of $${bootDebt.toLocaleString()} will trigger debt boot`);
