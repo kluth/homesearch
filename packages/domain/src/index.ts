@@ -7,3 +7,8 @@ export * from './lib/analytics/index.js';
 export * from './lib/financial/index.js';
 export * from './lib/social/index.js';
 export * from './lib/mobile/index.js';
+export * from './lib/admin/index.js';
+export * from './lib/integrations/index.js';
+export * from './lib/automation/index.js';
+export * from './lib/reporting/index.js';
+export * from './lib/i18n/index.js';
