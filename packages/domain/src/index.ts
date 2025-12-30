@@ -13,3 +13,8 @@ export * from './lib/automation/index.js';
 export * from './lib/reporting/index.js';
 export * from './lib/i18n/index.js';
 export * from './lib/onboarding/index.js';
+export * from './lib/education/index.js';
+export * from './lib/investment/index.js';
+export * from './lib/infrastructure/index.js';
+export * from './lib/international/index.js';
+export * from './lib/specialized/index.js';
