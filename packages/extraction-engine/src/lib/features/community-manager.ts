@@ -636,12 +636,6 @@ export class CommunityManager {
     const insights = this.neighborhoodInsights.get(key) ?? this.createEmptyInsights(key);
 
     // Update aspects
-    insights.aspects.location.rating =
-      (insights.aspects.location.rating * insights.aspects.location.reviewCount +
-        review.aspects.location) /
-      (insights.aspects.location.reviewCount + 1);
-    insights.aspects.location.reviewCount++;
-
     insights.aspects.safety.rating =
       (insights.aspects.safety.rating * insights.aspects.safety.reviewCount + 4) /
       (insights.aspects.safety.reviewCount + 1); // Placeholder

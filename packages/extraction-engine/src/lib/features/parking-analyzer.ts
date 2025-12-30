@@ -94,7 +94,7 @@ export class ParkingAnalyzer {
       overall: includedSpots >= 2 ? 95 : includedSpots === 1 ? 75 : 45,
       convenience: includedSpots >= 2 ? 95 : includedSpots === 1 ? 70 : 40,
       cost: includedSpots >= 1 ? 90 : 50,
-      security: included.type === 'garage' ? 95 : included.type === 'carport' ? 70 : 45,
+      security: included.type === 'garage' ? 95 : included.type === 'assigned' ? 70 : 45,
     };
 
     return { propertyId, included, additional, street, nearby, score };

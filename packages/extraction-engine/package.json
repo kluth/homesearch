@@ -16,6 +16,7 @@
     }
   },
   "dependencies": {
+    "@house-finder/domain": "*",
     "tslib": "^2.3.0"
   }
 }

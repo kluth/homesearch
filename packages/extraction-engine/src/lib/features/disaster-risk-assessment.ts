@@ -105,7 +105,8 @@ export class DisasterRiskAssessment {
   }
 
   private assessFloodRisk(location: { latitude: number; longitude: number }): DisasterRisk['risks']['flood'] {
-    const zone = Math.random() > 0.7 ? 'moderate' : 'minimal';
+    const rand = Math.random();
+    const zone = rand > 0.9 ? 'very_high' : rand > 0.7 ? 'high' : rand > 0.4 ? 'moderate' : 'minimal';
     return {
       zone,
       floodplainStatus: zone !== 'minimal',

@@ -325,8 +325,8 @@ export class TenantScreener {
     score += Math.max(0, rentalPoints);
 
     // Employment (0-200 points)
-    const employmentMap = { excellent: 200, good: 150, fair: 100, concerning: 50 };
-    score += employmentMap[data.employment.stability];
+    const employmentMap: Record<string, number> = { excellent: 200, good: 150, fair: 100, concerning: 50 };
+    score += employmentMap[data.employment.stability as string] ?? 0;
 
     // Income (0-200 points)
     if (data.incomeVerification.meetsRequirement) {

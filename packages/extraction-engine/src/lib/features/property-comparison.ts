@@ -338,8 +338,8 @@ export class PropertyComparisonTool {
     const mostFeatures =
       features.size > 0
         ? Array.from(features.entries()).reduce((max, [id, f]) =>
-            f.length > (features.get(max)?. length ?? 0) ? id : max
-          )
+            f.length > (features.get(max)?.length ?? 0) ? id : max
+          , properties[0].id)
         : properties[0].id;
 
     // Find unique features
@@ -726,13 +726,13 @@ export class PropertyComparisonTool {
     if (dimension.toLowerCase().includes('price') || dimension.toLowerCase().includes('value')) {
       return entries.reduce((min, [id, val]) =>
         val.value < values.get(min)!.value ? id : min
-      )[0];
+      , entries[0][0]);
     }
 
     // For area, rooms, higher is better
     return entries.reduce((max, [id, val]) =>
       val.value > values.get(max)!.value ? id : max
-    )[0];
+    , entries[0][0]);
   }
 
   /**

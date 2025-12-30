@@ -46,10 +46,13 @@ export class RenovationCostEstimator {
     kitchen: { cosmetic: 5000, moderate: 15000, major: 35000, luxury: 75000 },
     bathroom: { cosmetic: 3000, moderate: 8000, major: 18000, luxury: 40000 },
     basement: { cosmetic: 2000, moderate: 12000, major: 30000, luxury: 60000 },
+    addition: { cosmetic: 10000, moderate: 30000, major: 80000, luxury: 150000 },
+    exterior: { cosmetic: 3000, moderate: 10000, major: 25000, luxury: 50000 },
     flooring: { cosmetic: 2000, moderate: 5000, major: 10000, luxury: 20000 },
     painting: { cosmetic: 1000, moderate: 3000, major: 6000, luxury: 12000 },
     roofing: { cosmetic: 3000, moderate: 8000, major: 15000, luxury: 25000 },
     hvac: { cosmetic: 2000, moderate: 6000, major: 12000, luxury: 20000 },
+    custom: { cosmetic: 5000, moderate: 15000, major: 30000, luxury: 60000 },
   };
 
   public estimateRenovation(
