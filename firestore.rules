@@ -2856,6 +2856,245 @@ service cloud.firestore {
     }
 
     // =============================================
+    // HOMEOWNERSHIP MANAGEMENT
+    // =============================================
+
+    match /maintenance_tasks/{taskId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /seasonal_maintenance/{seasonId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if isOwner(request.resource.data.userId);
+    }
+
+    match /appliance_inventory/{applianceId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /home_value_tracking/{propertyId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if isOwner(request.resource.data.userId);
+    }
+
+    match /improvement_roi/{improvementId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /homeownership_dashboards/{propertyId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if false; // System managed
+    }
+
+    match /refinance_opportunities/{opportunityId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if false; // System managed
+    }
+
+    // =============================================
+    // ADVANCED INVESTMENT ANALYSIS
+    // =============================================
+
+    match /investment_cash_flows/{analysisId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /exchanges_1031/{exchangeId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /brrrr_strategies/{strategyId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /investment_comparisons/{comparisonId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /portfolio_analytics/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // System managed
+    }
+
+    // =============================================
+    // NEIGHBORHOOD INTELLIGENCE
+    // =============================================
+
+    match /development_pipelines/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /business_dynamics/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /neighborhood_events/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /growth_indicators/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /neighborhood_forecasts/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // AI generated
+    }
+
+    // =============================================
+    // MARKET INTELLIGENCE
+    // =============================================
+
+    match /market_cycle_analyses/{marketId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // System managed
+    }
+
+    match /price_predictions/{predictionId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // AI generated
+    }
+
+    match /timing_recommendations/{recommendationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if false; // AI generated
+    }
+
+    match /rate_impact_analyses/{analysisId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /bidding_strategies/{strategyId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if false; // AI generated
+    }
+
+    // =============================================
+    // ENERGY & SUSTAINABILITY
+    // =============================================
+
+    match /solar_potentials/{propertyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /energy_efficiency_audits/{auditId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /green_financing/{financingId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    match /utility_cost_optimizations/{propertyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // =============================================
+    // RENTAL PROPERTY MANAGEMENT
+    // =============================================
+
+    match /tenant_profiles/{tenantId} {
+      allow read: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || resource.data.tenants[0].id == request.auth.uid
+            || isAdmin());
+      allow create: if isAuthenticated()
+        && isOwner(request.resource.data.landlordId);
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || resource.data.tenants[0].id == request.auth.uid);
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /rent_payments/{paymentId} {
+      allow read: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || isOwner(resource.data.tenantId)
+            || isAdmin());
+      allow create: if isAuthenticated()
+        && (isOwner(request.resource.data.landlordId)
+            || isOwner(request.resource.data.tenantId));
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || isOwner(resource.data.tenantId));
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /rent_collection_dashboards/{landlordId} {
+      allow read: if isOwner(landlordId);
+      allow write: if false; // System managed
+    }
+
+    match /maintenance_requests/{requestId} {
+      allow read: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || isOwner(resource.data.tenantId)
+            || isAdmin());
+      allow create: if isAuthenticated()
+        && (isOwner(request.resource.data.landlordId)
+            || isOwner(request.resource.data.tenantId));
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || isOwner(resource.data.tenantId));
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /property_financials/{propertyId} {
+      allow read: if isOwner(resource.data.landlordId);
+      allow create: if isOwner(request.resource.data.landlordId);
+      allow update: if isOwner(resource.data.landlordId);
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /lease_violations/{violationId} {
+      allow read: if isAuthenticated()
+        && (isOwner(resource.data.landlordId)
+            || isOwner(resource.data.tenantId)
+            || isAdmin());
+      allow create: if isOwner(request.resource.data.landlordId);
+      allow update: if isOwner(resource.data.landlordId);
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /vacancy_management/{vacancyId} {
+      allow read: if isOwner(resource.data.landlordId);
+      allow create: if isOwner(request.resource.data.landlordId);
+      allow update: if isOwner(resource.data.landlordId);
+      allow delete: if isOwner(resource.data.landlordId);
+    }
+
+    match /landlord_compliance/{propertyId} {
+      allow read: if isOwner(resource.data.landlordId);
+      allow write: if isOwner(resource.data.landlordId);
+    }
+
+    // =============================================
     // DEFAULT DENY
     // =============================================
 
