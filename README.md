@@ -1,5 +1,13 @@
 # House Finder - Multi-Source Property Search Engine
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Angular](https://img.shields.io/badge/Angular-21-DD0031?logo=angular&logoColor=white)](https://angular.dev)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![Nx](https://img.shields.io/badge/Monorepo-Nx-143055?logo=nx&logoColor=white)](https://nx.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-Gen_2-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![TDD](https://img.shields.io/badge/TDD-Mandatory-blueviolet)](https://github.com/kluth/homesearch)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
 A high-performance, TDD-driven house search engine built with Nx monorepo architecture, designed to aggregate property listings from multiple sources (APIs and web scraping) into a unified domain model.
 
 ## 🏗️ Architecture Overview
